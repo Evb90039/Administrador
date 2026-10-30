@@ -1,0 +1,12 @@
+.avatar-sm {
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.bg-primary-soft { background: rgba(37, 99, 235, 0.14); }
+.bg-success-soft { background: rgba(16, 185, 129, 0.14); }
+.bg-info-soft    { background: rgba(14, 165, 233, 0.14); }

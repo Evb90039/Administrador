@@ -1,0 +1,232 @@
+<div class="d-flex justify-content-between align-items-end mb-4 gap-3 flex-wrap">
+  <div>
+    <h2 class="mb-1 fw-semibold">Proveedores</h2>
+    <p class="text-muted small mb-0">Contactos de los proveedores de tus productos</p>
+  </div>
+  <button class="btn btn-primary" type="button" (click)="openCreate()" [disabled]="loading()">
+    <i class="bi bi-plus-lg me-1"></i> Nuevo proveedor
+  </button>
+</div>
+
+@if (error()) {
+  <div class="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+    <span><i class="bi bi-exclamation-circle me-1"></i>{{ error() }}</span>
+    <button type="button" class="btn btn-sm btn-outline-danger" (click)="load()">Reintentar</button>
+  </div>
+}
+
+<div class="card overflow-hidden">
+  <div class="toolbar">
+    <div class="busqueda">
+      <i class="bi bi-search"></i>
+      <input
+        type="search"
+        class="form-control"
+        placeholder="Buscar por nombre o teléfono…"
+        [value]="busqueda()"
+        (input)="buscar($any($event.target).value)"
+      />
+    </div>
+    <span class="small text-muted ms-auto">
+      @if (busqueda().trim()) {
+        {{ filtrados().length }} de {{ proveedores().length }}
+      } @else {
+        {{ proveedores().length }} proveedores
+      }
+    </span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr class="text-muted small text-uppercase">
+          <th class="ps-4">#</th>
+          <th>Nombre</th>
+          <th>Teléfono</th>
+          <th class="text-end pe-4">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading()) {
+          @for (i of [1, 2, 3, 4]; track i) {
+            <tr>
+              <td class="ps-4"><span class="skeleton" style="width: 20px"></span></td>
+              <td>
+                <div class="d-flex align-items-center gap-3">
+                  <span class="skeleton avatar-skeleton"></span>
+                  <span class="skeleton" style="width: 140px"></span>
+                </div>
+              </td>
+              <td><span class="skeleton" style="width: 130px"></span></td>
+              <td class="pe-4"><span class="skeleton ms-auto" style="width: 100px"></span></td>
+            </tr>
+          }
+        } @else {
+          @for (p of paginados(); track p.id) {
+            <tr>
+              <td class="ps-4 text-muted">{{ p.id }}</td>
+              <td>
+                <div class="d-flex align-items-center gap-3">
+                  <span class="avatar {{ avatarColor(p.id) }}">{{ initials(p.nombre) }}</span>
+                  <span class="fw-semibold">{{ p.nombre }}</span>
+                </div>
+              </td>
+              <td class="text-nowrap">
+                <span class="telefono"><i class="bi bi-telephone"></i>{{ p.telefono }}</span>
+              </td>
+              <td class="text-end pe-4 text-nowrap">
+                <div class="row-actions">
+                  <a
+                    class="btn btn-sm btn-whatsapp"
+                    [href]="whatsappUrl(p.telefono)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Abrir chat de WhatsApp"
+                  >
+                    <i class="bi bi-whatsapp me-1"></i>WhatsApp
+                  </a>
+                  <button class="icon-action" type="button" title="Editar" (click)="openEdit(p)">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button class="icon-action danger" type="button" title="Eliminar" (click)="toDelete.set(p)">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4">
+                <div class="empty-state">
+                  @if (busqueda().trim()) {
+                    <span class="empty-icon"><i class="bi bi-search"></i></span>
+                    <h6 class="mb-1">Sin resultados</h6>
+                    <p class="text-muted small mb-3">Ningún proveedor coincide con "{{ busqueda() }}".</p>
+                    <button type="button" class="btn btn-sm btn-light" (click)="buscar('')">Limpiar búsqueda</button>
+                  } @else {
+                    <span class="empty-icon"><i class="bi bi-truck"></i></span>
+                    <h6 class="mb-1">Aún no hay proveedores</h6>
+                    <p class="text-muted small mb-3">Agrega el primero para tener sus datos a la mano.</p>
+                    <button type="button" class="btn btn-sm btn-primary" (click)="openCreate()">
+                      <i class="bi bi-plus-lg me-1"></i>Nuevo proveedor
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (!loading() && filtrados().length) {
+    <app-paginator [total]="filtrados().length" [(page)]="page" [(pageSize)]="pageSize" />
+  }
+</div>
+
+<!-- MODAL CREAR / EDITAR -->
+@if (modalOpen()) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" (click)="closeModals()">
+    <div class="modal-dialog modal-dialog-centered" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <form #f="ngForm" (ngSubmit)="save(f)" novalidate>
+          <div class="modal-header gap-3">
+            <span class="modal-icon">
+              <i class="bi {{ editingId() === null ? 'bi-truck' : 'bi-pencil-square' }}"></i>
+            </span>
+            <div class="me-auto">
+              <h5 class="modal-title mb-0">{{ editingId() === null ? 'Nuevo proveedor' : 'Editar proveedor' }}</h5>
+              <small class="text-muted">
+                {{ editingId() === null ? 'Completa los datos del proveedor' : 'Modifica los datos del proveedor' }}
+              </small>
+            </div>
+            <button type="button" class="btn-close align-self-start" aria-label="Cerrar" (click)="closeModals()"></button>
+          </div>
+
+          <div class="modal-body">
+            @if (formError()) {
+              <div class="alert alert-danger py-2 small" role="alert">
+                <i class="bi bi-exclamation-circle me-1"></i>{{ formError() }}
+              </div>
+            }
+
+            <div class="mb-2">
+              <label class="form-label small fw-500" for="nombre">Nombre</label>
+              <input
+                id="nombre"
+                class="form-control"
+                name="nombre"
+                placeholder="Nombre del proveedor"
+                [(ngModel)]="form.nombre"
+                #nombre="ngModel"
+                required
+                maxlength="100"
+                [class.is-invalid]="nombre.invalid && (nombre.touched || f.submitted)"
+              />
+              <div class="invalid-feedback">El nombre es obligatorio.</div>
+            </div>
+
+            <div class="mb-1">
+              <label class="form-label small fw-500" for="telefono">Número telefónico</label>
+              <input
+                id="telefono"
+                type="tel"
+                inputmode="tel"
+                class="form-control"
+                name="telefono"
+                placeholder="Ej. +86 157 6669 9487"
+                [(ngModel)]="form.telefono"
+                #telefono="ngModel"
+                required
+                pattern="^\+?[0-9\s\(\)\.\-]{7,20}$"
+                maxlength="20"
+                [class.is-invalid]="telefono.invalid && (telefono.touched || f.submitted)"
+              />
+              <div class="invalid-feedback">Ingresa un teléfono válido (7 a 15 dígitos, puede iniciar con +).</div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light me-auto" (click)="closeModals()" [disabled]="saving()">Cancelar</button>
+            <button type="submit" class="btn btn-primary" [disabled]="saving()">
+              @if (saving()) {
+                <span class="spinner-border spinner-border-sm me-1"></span> Guardando…
+              } @else {
+                <i class="bi bi-check-lg me-1"></i> Guardar
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL CONFIRMAR ELIMINACIÓN -->
+@if (toDelete(); as p) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" (click)="closeModals()">
+    <div class="modal-dialog modal-dialog-centered modal-sm" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-body text-center p-4">
+          <span class="modal-icon danger mb-3"><i class="bi bi-trash"></i></span>
+          <h5 class="mb-2">¿Eliminar proveedor?</h5>
+          <p class="text-muted small mb-0">
+            Se eliminará a <strong>{{ p.nombre }}</strong>. Esta acción no se puede deshacer.
+          </p>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" class="btn btn-light" (click)="closeModals()" [disabled]="saving()">Cancelar</button>
+          <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="saving()">
+            @if (saving()) {
+              <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

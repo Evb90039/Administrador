@@ -1,0 +1,19 @@
+.chart-placeholder {
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--app-radius-sm);
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.08), rgba(14, 165, 233, 0.1));
+  color: #2563eb;
+  font-size: 3.5rem;
+}
+.chart-placeholder--success {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(14, 165, 233, 0.08));
+  color: #10b981;
+}
+
+.text-bg-primary-soft { background: rgba(37, 99, 235, 0.14); color: #2563eb; }
+.text-bg-success-soft { background: rgba(16, 185, 129, 0.14); color: #10b981; }
+
+.btn-light { background: var(--app-bg); border: 1px solid var(--app-border); }
+.btn-light:hover { background: var(--app-primary-soft); border-color: transparent; color: var(--app-primary); }

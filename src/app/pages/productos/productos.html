@@ -1,0 +1,991 @@
+<!-- ENCABEZADO -->
+<div class="d-flex justify-content-between align-items-end mb-4 gap-3 flex-wrap">
+  <div>
+    <h2 class="mb-1 fw-semibold">Productos</h2>
+    <p class="text-muted small mb-0">Registro de productos comprados, reembolsos y ventas</p>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-light" type="button" title="Recargar" (click)="load()" [disabled]="loading()">
+      <i class="bi bi-arrow-clockwise"></i>
+    </button>
+    <button class="btn btn-primary" type="button" (click)="openCreate()" [disabled]="loading()">
+      <i class="bi bi-plus-lg me-1"></i> Nuevo producto
+    </button>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+    <span><i class="bi bi-exclamation-circle me-1"></i>{{ error() }}</span>
+    <button type="button" class="btn btn-sm btn-outline-danger" (click)="load()">Reintentar</button>
+  </div>
+}
+
+<!-- RESUMEN -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="card stat">
+      <span class="stat-icon stat-primary"><i class="bi bi-box-seam"></i></span>
+      <div class="min-w-0">
+        <div class="stat-label">Productos</div>
+        <div class="stat-value">{{ stats().total }}</div>
+        <div class="stat-hint">{{ stats().disponibles }} disponibles</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card stat">
+      <span class="stat-icon stat-warning"><i class="bi bi-wallet2"></i></span>
+      <div class="min-w-0">
+        <div class="stat-label">Invertido real</div>
+        <div class="stat-value">{{ stats().invertido | currency: 'MXN' : 'symbol-narrow' : '1.0-0' }}</div>
+        <div class="stat-hint">Compras menos reembolsos</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card stat">
+      <span class="stat-icon stat-success"><i class="bi bi-arrow-counterclockwise"></i></span>
+      <div class="min-w-0">
+        <div class="stat-label">Reembolsado</div>
+        <div class="stat-value">{{ stats().reembolsado | currency: 'MXN' : 'symbol-narrow' : '1.0-0' }}</div>
+        <div class="stat-hint">{{ stats().conReembolso }} con reembolso</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card stat">
+      <span class="stat-icon stat-info"><i class="bi bi-bag-check"></i></span>
+      <div class="min-w-0">
+        <div class="stat-label">Vendidos</div>
+        <div class="stat-value">{{ stats().vendidos }}</div>
+        <div class="stat-progress" [title]="stats().pctVendidos + '% vendido'">
+          <span [style.width.%]="stats().pctVendidos"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card overflow-hidden">
+  <!-- PESTAÑAS DE ESTADO -->
+  <div class="estado-tabs" role="tablist" aria-label="Filtrar por estado">
+    <button
+      type="button"
+      role="tab"
+      class="estado-tab"
+      [class.active]="filtroEstado() === 'todos'"
+      [attr.aria-selected]="filtroEstado() === 'todos'"
+      (click)="filtroEstado.set('todos')"
+    >
+      Todos <span class="tab-count">{{ productos().length }}</span>
+    </button>
+    @for (d of disponibilidades; track d) {
+      <button
+        type="button"
+        role="tab"
+        class="estado-tab {{ disponibilidadStyles[d].css }}"
+        [class.active]="filtroEstado() === d"
+        [attr.aria-selected]="filtroEstado() === d"
+        (click)="filtroEstado.set(d)"
+      >
+        <i class="bi {{ disponibilidadStyles[d].icon }}"></i>{{ d }}
+        <span class="tab-count">{{ conteoEstado()[d] }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- BARRA DE HERRAMIENTAS -->
+  <div class="toolbar">
+    <div class="filtro-busqueda">
+      <i class="bi bi-search"></i>
+      <input
+        type="search"
+        class="form-control"
+        placeholder="Buscar por nombre o categoría…"
+        [value]="busqueda()"
+        (input)="busqueda.set($any($event.target).value)"
+      />
+    </div>
+
+    <select
+      class="form-select filtro-select"
+      aria-label="Filtrar por tienda"
+      [value]="filtroTienda()"
+      (change)="filtroTienda.set($any($event.target).value)"
+    >
+      <option value="todos">Todas las tiendas</option>
+      @for (t of tiendas; track t) {
+        <option [value]="t">{{ t }}</option>
+      }
+    </select>
+
+    <div class="segmented" role="group" aria-label="Filtrar por reseña">
+      <button type="button" [class.active]="filtroResena() === 'todos'" (click)="filtroResena.set('todos')">Todas</button>
+      <button type="button" [class.active]="filtroResena() === 'si'" (click)="filtroResena.set('si')">
+        <i class="bi bi-star-fill text-warning"></i> Reseñados
+      </button>
+      <button type="button" [class.active]="filtroResena() === 'no'" (click)="filtroResena.set('no')">
+        <i class="bi bi-star"></i> Sin reseña
+      </button>
+    </div>
+
+    @if (hayFiltros()) {
+      <div class="ms-auto d-flex align-items-center gap-2 small text-muted">
+        <span>{{ productosFiltrados().length }} de {{ productos().length }}</span>
+        <button type="button" class="btn btn-sm btn-light" (click)="limpiarFiltros()">
+          <i class="bi bi-x-lg me-1"></i>Limpiar
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- TABLA -->
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 productos-table">
+      <thead>
+        <tr class="text-muted small text-uppercase">
+          <th class="ps-4">Producto</th>
+          <th>Tienda</th>
+          <th class="text-end">Precio</th>
+          <th>Estado</th>
+          <th class="text-center">Reseña</th>
+          <th class="text-end pe-4">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading()) {
+          @for (i of [1, 2, 3]; track i) {
+            <tr class="skeleton-row">
+              <td class="ps-4">
+                <div class="d-flex align-items-center gap-3">
+                  <span class="skeleton skeleton-avatar"></span>
+                  <div class="flex-grow-1">
+                    <span class="skeleton" style="width: 60%"></span>
+                    <span class="skeleton mt-2" style="width: 40%"></span>
+                  </div>
+                </div>
+              </td>
+              <td><span class="skeleton" style="width: 90px"></span></td>
+              <td><span class="skeleton ms-auto" style="width: 70px"></span></td>
+              <td><span class="skeleton" style="width: 90px"></span></td>
+              <td><span class="skeleton mx-auto" style="width: 20px"></span></td>
+              <td class="pe-4"><span class="skeleton ms-auto" style="width: 110px"></span></td>
+            </tr>
+          }
+        } @else {
+          @for (p of productosFiltrados(); track p.id) {
+            <tr>
+              <!-- Producto -->
+              <td class="ps-4">
+                <div class="d-flex align-items-center gap-3">
+                  @let imgs = imagenesPorProducto().get(p.id) ?? [];
+                  <span
+                    class="product-avatar"
+                    [class.avatar-amazon]="p.tienda === 'Amazon'"
+                    [class.avatar-ml]="p.tienda === 'Mercado Libre'"
+                  >
+                    @if (imagenPrincipal(p)?.url; as url) {
+                      <img [src]="url" [alt]="p.nombre" loading="lazy" />
+                      @if (imgs.length > 1) {
+                        <span class="avatar-count">+{{ imgs.length - 1 }}</span>
+                      }
+                    } @else {
+                      {{ p.nombre.charAt(0).toUpperCase() }}
+                    }
+                  </span>
+                  <div class="min-w-0">
+                    <div class="product-name">
+                      <span class="text-truncate">{{ p.nombre }}</span>
+                      @if (p.enlace) {
+                        <a
+                          class="product-link"
+                          [href]="p.enlace"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Abrir enlace del producto"
+                        >
+                          <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                      }
+                    </div>
+                    <div class="product-meta">
+                      <span><i class="bi bi-tag"></i>{{ categoriaNombre().get(p.categoria_id) ?? '—' }}</span>
+                      <span><i class="bi bi-calendar3"></i>{{ p.fecha_compra | date: 'dd/MM/yyyy' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Tienda -->
+              <td>
+                <span
+                  class="tienda-badge"
+                  [class.tienda-amazon]="p.tienda === 'Amazon'"
+                  [class.tienda-ml]="p.tienda === 'Mercado Libre'"
+                >
+                  {{ p.tienda }}
+                </span>
+                @if (p.proveedor_id || p.tarjeta) {
+                  <div class="product-meta mt-1">
+                    @if (proveedorNombre().get(p.proveedor_id ?? -1); as prov) {
+                      <span title="Proveedor"><i class="bi bi-truck"></i>{{ prov }}</span>
+                    }
+                    @if (p.tarjeta) {
+                      <span title="Tarjeta"><i class="bi bi-credit-card"></i>{{ tarjetaLabel(p.tarjeta) }}</span>
+                    }
+                  </div>
+                }
+              </td>
+
+              <!-- Precio -->
+              <td class="text-end text-nowrap">
+                @if (precioReal(p); as real) {
+                  <div class="precio-principal text-success">{{ real | currency: 'MXN' : 'symbol-narrow' }}</div>
+                  <div class="precio-original">{{ p.precio_compra | currency: 'MXN' : 'symbol-narrow' }}</div>
+                } @else {
+                  <div class="precio-principal">{{ p.precio_compra | currency: 'MXN' : 'symbol-narrow' }}</div>
+                }
+                @if (p.precio_venta != null) {
+                  <div class="precio-venta" title="Precio de venta">
+                    <i class="bi bi-tag"></i>{{ p.precio_venta | currency: 'MXN' : 'symbol-narrow' }}
+                  </div>
+                }
+              </td>
+
+              <!-- Estado -->
+              <td class="text-nowrap">
+                <span class="estado-badge {{ disponibilidadStyles[p.disponibilidad]?.css }}">
+                  <i class="bi {{ disponibilidadStyles[p.disponibilidad]?.icon }}"></i>{{ p.disponibilidad }}
+                </span>
+                @if (ventaPorProducto().get(p.id); as v) {
+                  <div class="product-meta mt-1">
+                    <span><i class="bi bi-person"></i>{{ usuarioNombre().get(v.usuario_id) ?? '—' }}</span>
+                    <span>{{ v.fecha_venta | date: 'dd/MM/yy' }}</span>
+                    @if (v.precio_final != null) {
+                      <span class="text-success fw-semibold" title="Precio final de la venta">
+                        <i class="bi bi-cash"></i>{{ v.precio_final | currency: 'MXN' : 'symbol-narrow' }}
+                      </span>
+                    }
+                  </div>
+                }
+              </td>
+
+              <!-- Reseña -->
+              <td class="text-center">
+                <i
+                  class="bi fs-6 {{ p.resenado ? 'bi-star-fill text-warning' : 'bi-star text-muted opacity-25' }}"
+                  [title]="p.resenado ? 'Reseñado' : 'Sin reseña'"
+                ></i>
+              </td>
+
+              <!-- Acciones -->
+              <td class="text-end pe-4 text-nowrap">
+                <div class="row-actions">
+                  @if (!ventaPorProducto().has(p.id)) {
+                    <button class="btn btn-sm btn-vender" type="button" (click)="openSell(p)">
+                      <i class="bi bi-cash-coin me-1"></i>Vender
+                    </button>
+                  }
+                  <button class="icon-action" type="button" title="Editar" (click)="openEdit(p)">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button class="icon-action danger" type="button" title="Eliminar" (click)="toDelete.set(p)">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6">
+                <div class="empty-state">
+                  @if (hayFiltros()) {
+                    <span class="empty-icon"><i class="bi bi-funnel"></i></span>
+                    <h6 class="mb-1">Sin resultados</h6>
+                    <p class="text-muted small mb-3">No hay productos que coincidan con los filtros.</p>
+                    <button type="button" class="btn btn-sm btn-light" (click)="limpiarFiltros()">
+                      <i class="bi bi-x-lg me-1"></i>Limpiar filtros
+                    </button>
+                  } @else {
+                    <span class="empty-icon"><i class="bi bi-box-seam"></i></span>
+                    <h6 class="mb-1">Aún no hay productos</h6>
+                    <p class="text-muted small mb-3">Registra tu primera compra para empezar.</p>
+                    <button type="button" class="btn btn-sm btn-primary" (click)="openCreate()">
+                      <i class="bi bi-plus-lg me-1"></i>Nuevo producto
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL CREAR / EDITAR (por pestañas) -->
+@if (modalOpen()) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" (click)="closeModals()">
+    <div class="modal-dialog modal-dialog-centered modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <form #f="ngForm" (ngSubmit)="submit(f)" novalidate>
+          <div class="modal-header gap-3">
+            <span class="modal-icon">
+              <i class="bi {{ editingId() === null ? 'bi-bag-plus' : 'bi-pencil-square' }}"></i>
+            </span>
+            <div class="me-auto">
+              <h5 class="modal-title mb-0">{{ editingId() === null ? 'Nuevo producto' : 'Editar producto' }}</h5>
+              <small class="text-muted">Paso {{ step() + 1 }} de {{ tabs.length }}</small>
+            </div>
+            <button type="button" class="btn-close align-self-start" aria-label="Cerrar" (click)="closeModals()"></button>
+          </div>
+
+          <!-- PESTAÑAS -->
+          <div class="wizard-steps">
+            @for (tab of tabs; track tab.id; let i = $index) {
+              <button
+                type="button"
+                class="wizard-step"
+                [class.active]="step() === i"
+                [class.done]="i < step()"
+                (click)="goTo(i, f)"
+              >
+                <span class="wizard-step-num">
+                  @if (i < step()) {
+                    <i class="bi bi-check-lg"></i>
+                  } @else {
+                    {{ i + 1 }}
+                  }
+                </span>
+                <i class="bi {{ tab.icon }} d-none d-sm-inline"></i>
+                <span>{{ tab.label }}</span>
+              </button>
+            }
+          </div>
+
+          <div class="modal-body pt-3">
+            @if (formError()) {
+              <div class="alert alert-danger py-2 small" role="alert">
+                <i class="bi bi-exclamation-circle me-1"></i>{{ formError() }}
+              </div>
+            }
+
+            <!-- PESTAÑA 1: DATOS GENERALES -->
+            <div ngModelGroup="general" [hidden]="step() !== 0">
+              <div class="row gx-3 gy-1">
+                <div class="col-12 col-md-5">
+                  <label class="form-label small fw-500" for="fecha_compra">Fecha de compra</label>
+                  <input
+                    id="fecha_compra"
+                    type="date"
+                    class="form-control"
+                    name="fecha_compra"
+                    [max]="maxDate"
+                    [(ngModel)]="form.fecha_compra"
+                    #fecha="ngModel"
+                    required
+                    [class.is-invalid]="fecha.invalid && fecha.touched"
+                  />
+                  <div class="invalid-feedback">La fecha de compra es obligatoria.</div>
+                </div>
+
+                <div class="col-12 col-md-7">
+                  <label class="form-label small fw-500" for="nombre">Nombre del producto</label>
+                  <input
+                    id="nombre"
+                    class="form-control"
+                    name="nombre"
+                    placeholder="Ej. Audífonos inalámbricos"
+                    [(ngModel)]="form.nombre"
+                    #nombre="ngModel"
+                    required
+                    maxlength="150"
+                    [class.is-invalid]="nombre.invalid && nombre.touched"
+                  />
+                  <div class="invalid-feedback">El nombre del producto es obligatorio.</div>
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label small fw-500" for="enlace">
+                    Enlace del producto <span class="text-muted fw-normal">(opcional)</span>
+                  </label>
+                  <div class="input-group has-validation">
+                    <span class="input-group-text bg-white"><i class="bi bi-link-45deg text-muted"></i></span>
+                    <input
+                      id="enlace"
+                      type="url"
+                      class="form-control"
+                      name="enlace"
+                      placeholder="https://www.amazon.com.mx/..."
+                      [(ngModel)]="form.enlace"
+                      #enlace="ngModel"
+                      pattern="^https?://.+"
+                      maxlength="500"
+                      [class.is-invalid]="enlace.invalid && enlace.touched"
+                    />
+                    <div class="invalid-feedback">El enlace debe empezar con http:// o https://</div>
+                  </div>
+                </div>
+
+                <!-- IMÁGENES -->
+                <div class="col-12">
+                  <div class="d-flex justify-content-between align-items-baseline">
+                    <span class="form-label small fw-500">
+                      Imágenes <span class="text-muted fw-normal">(opcional)</span>
+                    </span>
+                    <span class="small text-muted">{{ totalImagenesForm() }} / {{ maxImagenes }}</span>
+                  </div>
+
+                  <div class="img-grid">
+                    @for (img of imagenesExistentes(); track img.id) {
+                      @let key = 'e:' + img.id;
+                      <div class="img-thumb" [class.principal]="principalKey() === key">
+                        @if (img.url) {
+                          <img [src]="img.url" alt="Imagen del producto" loading="lazy" />
+                        } @else {
+                          <i class="bi bi-image text-muted"></i>
+                        }
+                        <button
+                          type="button"
+                          class="img-star"
+                          [title]="principalKey() === key ? 'Imagen principal' : 'Marcar como principal'"
+                          [attr.aria-pressed]="principalKey() === key"
+                          (click)="marcarPrincipal(key)"
+                        >
+                          <i class="bi {{ principalKey() === key ? 'bi-star-fill' : 'bi-star' }}"></i>
+                        </button>
+                        @if (principalKey() === key) {
+                          <span class="img-tag img-tag-principal">Principal</span>
+                        }
+                        <button type="button" class="img-remove" title="Quitar imagen" (click)="quitarExistente(img)">
+                          <i class="bi bi-x-lg"></i>
+                        </button>
+                      </div>
+                    }
+                    @for (img of nuevasImagenes(); track img.preview; let i = $index) {
+                      @let key = 'n:' + img.preview;
+                      <div class="img-thumb" [class.principal]="principalKey() === key">
+                        <img [src]="img.preview" [alt]="img.file.name" />
+                        <button
+                          type="button"
+                          class="img-star"
+                          [title]="principalKey() === key ? 'Imagen principal' : 'Marcar como principal'"
+                          [attr.aria-pressed]="principalKey() === key"
+                          (click)="marcarPrincipal(key)"
+                        >
+                          <i class="bi {{ principalKey() === key ? 'bi-star-fill' : 'bi-star' }}"></i>
+                        </button>
+                        <span class="img-tag" [class.img-tag-principal]="principalKey() === key">
+                          {{ principalKey() === key ? 'Principal' : 'Nueva' }}
+                        </span>
+                        <button type="button" class="img-remove" title="Quitar imagen" (click)="quitarNueva(i)">
+                          <i class="bi bi-x-lg"></i>
+                        </button>
+                      </div>
+                    }
+                    @if (totalImagenesForm() < maxImagenes) {
+                      <label
+                        class="img-drop"
+                        [class.over]="dragOver()"
+                        (dragover)="$event.preventDefault(); dragOver.set(true)"
+                        (dragleave)="dragOver.set(false)"
+                        (drop)="onDrop($event)"
+                      >
+                        <input type="file" class="visually-hidden" multiple [accept]="tiposImagen" (change)="onImagenesInput($event)" />
+                        <i class="bi bi-cloud-arrow-up"></i>
+                        <span>Agregar</span>
+                      </label>
+                    }
+                  </div>
+
+                  @if (imgError()) {
+                    <div class="small text-danger mt-2"><i class="bi bi-exclamation-circle me-1"></i>{{ imgError() }}</div>
+                  } @else {
+                    <div class="small text-muted mt-2">
+                      Arrastra o haz clic para agregar (JPG, PNG, WEBP o GIF, máx. 5 MB).
+                      Toca la <i class="bi bi-star"></i> para elegir la imagen principal.
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- PESTAÑA 2: TIENDA -->
+            <div ngModelGroup="tienda" [hidden]="step() !== 1">
+              <div class="row gx-3 gy-1">
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-500" for="tienda">Nombre de la tienda</label>
+                  <select
+                    id="tienda"
+                    class="form-select"
+                    name="tienda"
+                    [(ngModel)]="form.tienda"
+                    #tienda="ngModel"
+                    required
+                    [class.is-invalid]="tienda.invalid && tienda.touched"
+                  >
+                    <option value="" disabled>Selecciona una tienda</option>
+                    @for (t of tiendas; track t) {
+                      <option [value]="t">{{ t }}</option>
+                    }
+                  </select>
+                  <div class="invalid-feedback">Selecciona una tienda.</div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-500" for="categoria">Categoría</label>
+                  <app-search-select
+                    inputId="categoria"
+                    name="categoria_id"
+                    placeholder="Selecciona una categoría"
+                    searchPlaceholder="Buscar categoría…"
+                    [options]="categoriaOptions()"
+                    [(ngModel)]="form.categoria_id"
+                    #categoria="ngModel"
+                    required
+                    [class.is-invalid]="categoria.invalid && categoria.touched"
+                  />
+                  <div class="invalid-feedback">Selecciona una categoría.</div>
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label small fw-500" for="proveedor">
+                    Proveedor <span class="text-muted fw-normal">(quién nos vendió el producto)</span>
+                  </label>
+                  <app-search-select
+                    inputId="proveedor"
+                    name="proveedor_id"
+                    placeholder="Selecciona un proveedor"
+                    searchPlaceholder="Buscar por nombre o teléfono…"
+                    [options]="proveedorOptions()"
+                    [(ngModel)]="form.proveedor_id"
+                    #proveedor="ngModel"
+                    required
+                    [class.is-invalid]="proveedor.invalid && proveedor.touched"
+                  />
+                  <div class="invalid-feedback">
+                    @if (proveedores().length) {
+                      Selecciona el proveedor.
+                    } @else {
+                      No hay proveedores registrados: agrégalos en la sección Proveedores.
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PESTAÑA 3: COMPRA Y COSTO REAL -->
+            <div ngModelGroup="compra" [hidden]="step() !== 2">
+              <h6 class="fw-semibold mb-3">Compra, costo real y venta</h6>
+              <div class="row gx-3 gy-1">
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-500" for="tarjeta">
+                    Tarjeta <span class="text-muted fw-normal">(opcional)</span>
+                  </label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-credit-card text-muted"></i></span>
+                    <select id="tarjeta" class="form-select" name="tarjeta" [(ngModel)]="form.tarjeta">
+                      <option value="">Sin tarjeta</option>
+                      @for (t of tarjetas; track t.value) {
+                        <option [value]="t.value">{{ t.nombre }} •••• {{ t.terminacion }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-500" for="precio_compra">Precio de compra</label>
+                  <div class="input-group has-validation">
+                    <span class="input-group-text bg-white">$</span>
+                    <input
+                      id="precio_compra"
+                      type="number"
+                      inputmode="decimal"
+                      class="form-control"
+                      name="precio_compra"
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      [(ngModel)]="form.precio_compra"
+                      #precio="ngModel"
+                      required
+                      [class.is-invalid]="precio.invalid && precio.touched"
+                    />
+                    <div class="invalid-feedback">Ingresa un precio válido (0 o mayor).</div>
+                  </div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-500" for="dinero_reembolsado">
+                    Dinero reembolsado <span class="text-muted fw-normal">(opcional)</span>
+                  </label>
+                  <div class="input-group has-validation">
+                    <span class="input-group-text bg-white">$</span>
+                    <input
+                      id="dinero_reembolsado"
+                      type="number"
+                      inputmode="decimal"
+                      class="form-control"
+                      name="dinero_reembolsado"
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      [max]="form.precio_compra ?? null"
+                      [(ngModel)]="form.dinero_reembolsado"
+                      #reembolso="ngModel"
+                      [class.is-invalid]="reembolso.invalid && reembolso.touched"
+                    />
+                    <div class="invalid-feedback">El reembolso no puede ser negativo ni mayor al precio de compra.</div>
+                  </div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-500" for="reembolso_via">
+                    Reembolso vía <span class="text-muted fw-normal">(opcional)</span>
+                  </label>
+                  <select
+                    id="reembolso_via"
+                    class="form-select"
+                    name="reembolso_via"
+                    [(ngModel)]="form.reembolso_via"
+                  >
+                    <option value="">Sin especificar</option>
+                    @for (v of reembolsoVias; track v) {
+                      <option [value]="v">{{ v }}</option>
+                    }
+                  </select>
+                </div>
+
+                <!-- Siempre está en el DOM para poder animar la entrada y la salida. -->
+                @let preview = precioRealPreview(reembolso.valid);
+                <div class="col-12 precio-real-wrap" [class.show]="preview.visible" [attr.aria-hidden]="!preview.visible">
+                  <div class="precio-real-inner">
+                    <div class="precio-real">
+                      <div>
+                        <div class="small text-muted">Precio real</div>
+                        <div class="small text-muted">
+                          {{ preview.precio | currency: 'MXN' : 'symbol-narrow' }} −
+                          {{ preview.reembolso | currency: 'MXN' : 'symbol-narrow' }}
+                        </div>
+                      </div>
+                      <div class="precio-real-valor">{{ preview.real | currency: 'MXN' : 'symbol-narrow' }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- VENTA -->
+                <div class="col-12"><hr class="my-3" /></div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small fw-500" for="precio_venta">
+                    Precio de venta <span class="text-muted fw-normal">(opcional)</span>
+                  </label>
+                  <div class="input-group has-validation">
+                    <span class="input-group-text bg-white"><i class="bi bi-tag text-muted"></i></span>
+                    <input
+                      id="precio_venta"
+                      type="number"
+                      inputmode="decimal"
+                      class="form-control"
+                      name="precio_venta"
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      [(ngModel)]="form.precio_venta"
+                      #precioVenta="ngModel"
+                      [class.is-invalid]="precioVenta.invalid && precioVenta.touched"
+                    />
+                    <div class="invalid-feedback">Ingresa un precio válido (0 o mayor).</div>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6 d-flex align-items-start">
+                  @let ganancia = gananciaForm();
+                  @if (ganancia !== null && precioVenta.valid) {
+                    <div class="ganancia" [class.perdida]="ganancia < 0">
+                      <span class="small">Ganancia esperada</span>
+                      <strong>
+                        {{ ganancia | currency: 'MXN' : 'symbol-narrow' }}
+                        @if (gananciaPct(); as pct) {
+                          <small>({{ pct }}%)</small>
+                        }
+                      </strong>
+                    </div>
+                  } @else {
+                    <p class="small text-muted mb-0 mt-md-4">
+                      Es el precio que se mostrará en el Catálogo.
+                    </p>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- PESTAÑA 4: ESTADO DEL PRODUCTO -->
+            <div ngModelGroup="estado" [hidden]="step() !== 3">
+              <h6 class="fw-semibold mb-3">Estado del producto</h6>
+
+              <label class="resena-card mb-4" for="resenado" [class.checked]="form.resenado">
+                <span class="resena-icon"><i class="bi {{ form.resenado ? 'bi-star-fill' : 'bi-star' }}"></i></span>
+                <span class="flex-grow-1">
+                  <span class="d-block fw-500">Reseñado</span>
+                  <span class="d-block small text-muted">Marca si ya dejaste la reseña del producto</span>
+                </span>
+                <span class="form-check form-switch m-0">
+                  <input
+                    id="resenado"
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    name="resenado"
+                    [(ngModel)]="form.resenado"
+                  />
+                </span>
+              </label>
+
+              <div class="form-label small fw-500" id="disponibilidad-label">
+                Estado de disponibilidad <span class="text-danger">*</span>
+              </div>
+              @if (editingVenta(); as v) {
+                <div class="alert alert-info py-2 small mb-2">
+                  <i class="bi bi-lock me-1"></i>
+                  Vendido por <strong>{{ usuarioNombre().get(v.usuario_id) ?? '—' }}</strong>
+                  el {{ v.fecha_venta | date: 'dd/MM/yyyy' }}. El estado no se puede cambiar.
+                </div>
+              }
+              <div
+                class="estado-grid"
+                [class.locked]="editingVenta()"
+                role="radiogroup"
+                aria-labelledby="disponibilidad-label"
+              >
+                @for (d of disponibilidades; track d) {
+                  <label class="estado-option {{ disponibilidadStyles[d].css }}" [class.checked]="form.disponibilidad === d">
+                    <input
+                      type="radio"
+                      class="visually-hidden"
+                      name="disponibilidad"
+                      [value]="d"
+                      [(ngModel)]="form.disponibilidad"
+                      required
+                    />
+                    <i class="bi {{ disponibilidadStyles[d].icon }}"></i>
+                    <span>{{ d }}</span>
+                  </label>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light me-auto" (click)="closeModals()" [disabled]="saving()">Cancelar</button>
+            @if (step() > 0) {
+              <button type="button" class="btn btn-light" (click)="step.set(step() - 1)" [disabled]="saving()">
+                <i class="bi bi-arrow-left me-1"></i> Anterior
+              </button>
+            }
+            @if (step() < tabs.length - 1) {
+              <button type="submit" class="btn btn-primary">
+                Siguiente <i class="bi bi-arrow-right ms-1"></i>
+              </button>
+            } @else {
+              <button type="submit" class="btn btn-primary" [disabled]="saving()">
+                @if (saving()) {
+                  <span class="spinner-border spinner-border-sm me-1"></span> {{ savingLabel() }}
+                } @else {
+                  <i class="bi bi-check-lg me-1"></i> Guardar
+                }
+              </button>
+            }
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL MARCAR COMO VENDIDO -->
+@if (toSell(); as p) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" (click)="closeModals()">
+    <div class="modal-dialog modal-dialog-centered" (click)="$event.stopPropagation()">
+      <div class="modal-content venta-modal">
+        <form #sf="ngForm" (ngSubmit)="confirmSell(sf)" novalidate>
+          <!-- Encabezado con el producto -->
+          <div class="venta-header">
+            <span class="venta-thumb">
+              @if (imagenPrincipal(p)?.url; as url) {
+                <img [src]="url" [alt]="p.nombre" />
+              } @else {
+                <i class="bi bi-box-seam"></i>
+              }
+            </span>
+            <div class="flex-grow-1 min-w-0">
+              <span class="venta-kicker"><i class="bi bi-bag-check me-1"></i>Marcar como vendido</span>
+              <h5 class="venta-nombre" [title]="p.nombre">{{ p.nombre }}</h5>
+              @if (p.precio_venta != null) {
+                <span class="venta-publicado">
+                  Precio publicado <strong>{{ p.precio_venta | currency: 'MXN' : 'symbol-narrow' }}</strong>
+                </span>
+              }
+            </div>
+            <button type="button" class="btn-close align-self-start" aria-label="Cerrar" (click)="closeModals()"></button>
+          </div>
+
+          <div class="modal-body pt-3">
+            @if (sellError()) {
+              <div class="alert alert-danger py-2 small" role="alert">
+                <i class="bi bi-exclamation-circle me-1"></i>{{ sellError() }}
+              </div>
+            }
+            @if (usuarios().length === 0) {
+              <div class="alert alert-warning py-2 small mb-3">
+                <i class="bi bi-people me-1"></i>No hay usuarios registrados. Crea uno en la sección Usuarios.
+              </div>
+            }
+
+            <div class="mb-1">
+              <label class="form-label small fw-500" for="vendedor">¿Quién lo vendió? <span class="text-danger">*</span></label>
+              <app-search-select
+                inputId="vendedor"
+                name="usuario_id"
+                placeholder="Selecciona un usuario"
+                searchPlaceholder="Buscar por nombre o teléfono…"
+                [options]="usuarioOptions()"
+                [(ngModel)]="ventaForm.usuario_id"
+                #vendedor="ngModel"
+                required
+                [class.is-invalid]="vendedor.invalid && vendedor.touched"
+              />
+              <div class="invalid-feedback">Selecciona quién vendió el producto.</div>
+            </div>
+
+            <div class="row gx-3">
+              <div class="col-12 col-sm-6">
+                <label class="form-label small fw-500" for="fecha_venta">Fecha de venta</label>
+                <input
+                  id="fecha_venta"
+                  type="date"
+                  class="form-control"
+                  name="fecha_venta"
+                  [max]="maxDate"
+                  [(ngModel)]="ventaForm.fecha_venta"
+                  #fechaVenta="ngModel"
+                  required
+                  [class.is-invalid]="fechaVenta.invalid && fechaVenta.touched"
+                />
+                <div class="invalid-feedback">La fecha es obligatoria.</div>
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label small fw-500" for="precio_final">Precio final</label>
+                <div class="input-group has-validation">
+                  <span class="input-group-text bg-white">$</span>
+                  <input
+                    id="precio_final"
+                    type="number"
+                    inputmode="decimal"
+                    class="form-control fw-semibold"
+                    name="precio_final"
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    [(ngModel)]="ventaForm.precio_final"
+                    #precioFinal="ngModel"
+                    [class.is-invalid]="precioFinal.invalid && precioFinal.touched"
+                  />
+                  <div class="invalid-feedback">Ingresa un precio válido.</div>
+                </div>
+              </div>
+            </div>
+
+            @if (p.precio_venta != null && ventaForm.precio_final != null && ventaForm.precio_final < p.precio_venta) {
+              <div class="descuento mb-3">
+                <i class="bi bi-tag"></i>
+                Descuento de {{ p.precio_venta - ventaForm.precio_final | currency: 'MXN' : 'symbol-narrow' }}
+                ({{ ((p.precio_venta - ventaForm.precio_final) / p.precio_venta) * 100 | number: '1.0-0' }}%)
+                sobre el precio publicado
+              </div>
+            }
+
+            <!-- Resumen tipo ticket -->
+            @let gv = gananciaVenta(p);
+            @if (gv !== null && precioFinal.valid) {
+              <div class="ticket">
+                <div class="ticket-row">
+                  <span>Precio final</span>
+                  <span>{{ ventaForm.precio_final | currency: 'MXN' : 'symbol-narrow' }}</span>
+                </div>
+                <div class="ticket-row text-muted">
+                  <span>Costo real</span>
+                  <span>− {{ costoReal(p) | currency: 'MXN' : 'symbol-narrow' }}</span>
+                </div>
+                <div class="ticket-row ticket-sub">
+                  <span>Ganancia</span>
+                  <span [class.text-danger]="gv.total < 0">{{ gv.total | currency: 'MXN' : 'symbol-narrow' }}</span>
+                </div>
+                @if (gv.dividida) {
+                  <div class="ticket-row text-primary">
+                    <span><i class="bi bi-person-check me-1"></i>Comisión {{ vendedorNombre() }} (50%)</span>
+                    <span>− {{ gv.vendedor | currency: 'MXN' : 'symbol-narrow' }}</span>
+                  </div>
+                }
+                <div class="ticket-total" [class.perdida]="gv.tuParte < 0">
+                  <span>{{ gv.dividida ? 'Tu ganancia' : 'Ganancia real' }}</span>
+                  <strong>{{ gv.tuParte | currency: 'MXN' : 'symbol-narrow' }}</strong>
+                </div>
+              </div>
+            } @else if (ventaForm.precio_final == null) {
+              <div class="ticket ticket-vacio">
+                <i class="bi bi-calculator"></i>
+                Escribe el precio final para ver la ganancia.
+              </div>
+            }
+
+            <p class="small text-muted mb-0 mt-3">
+              <i class="bi bi-info-circle me-1"></i>El producto pasará a <strong>Vendido</strong> y saldrá del Catálogo.
+            </p>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light me-auto" (click)="closeModals()" [disabled]="saving()">Cancelar</button>
+            <button type="submit" class="btn btn-success px-4" [disabled]="saving() || usuarios().length === 0">
+              @if (saving()) {
+                <span class="spinner-border spinner-border-sm me-1"></span> Registrando…
+              } @else {
+                <i class="bi bi-bag-check me-1"></i> Registrar venta
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}
+
+
+<!-- MODAL CONFIRMAR ELIMINACIÓN -->
+@if (toDelete(); as p) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" (click)="closeModals()">
+    <div class="modal-dialog modal-dialog-centered modal-sm" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-body text-center p-4">
+          <span class="modal-icon danger mb-3"><i class="bi bi-trash"></i></span>
+          <h5 class="mb-2">¿Eliminar producto?</h5>
+          <p class="text-muted small mb-0">
+            Se eliminará <strong>{{ p.nombre }}</strong>. Esta acción no se puede deshacer.
+          </p>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" class="btn btn-light" (click)="closeModals()" [disabled]="saving()">Cancelar</button>
+          <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="saving()">
+            @if (saving()) {
+              <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

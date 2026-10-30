@@ -1,0 +1,195 @@
+<div class="d-flex justify-content-between align-items-end mb-4 gap-3 flex-wrap">
+  <div>
+    <h2 class="mb-1 fw-semibold">Finanzas</h2>
+    <p class="text-muted small mb-0">Cuánto vendió cada usuario y cuánto se ganó</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <div class="segmented" role="group" aria-label="Período">
+      @for (p of periodos; track p.id) {
+        <button type="button" [class.active]="periodo() === p.id" (click)="cambiarPeriodo(p.id)">{{ p.label }}</button>
+      }
+    </div>
+    <button class="btn btn-light" type="button" title="Recargar" (click)="load()" [disabled]="loading()">
+      <i class="bi bi-arrow-clockwise"></i>
+    </button>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+    <span><i class="bi bi-exclamation-circle me-1"></i>{{ error() }}</span>
+    <button type="button" class="btn btn-sm btn-outline-danger" (click)="load()">Reintentar</button>
+  </div>
+}
+
+<!-- RESUMEN -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="card stat">
+      <span class="stat-icon stat-success"><i class="bi bi-cash-stack"></i></span>
+      <div class="min-w-0">
+        <div class="stat-label">Ingresos</div>
+        <div class="stat-value">{{ totales().ingresos | currency: 'MXN' : 'symbol-narrow' : '1.0-0' }}</div>
+        <div class="stat-hint">Suma de precios finales</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card stat">
+      <span class="stat-icon" [class.stat-primary]="totales().ganancia >= 0" [class.stat-danger]="totales().ganancia < 0">
+        <i class="bi bi-graph-up-arrow"></i>
+      </span>
+      <div class="min-w-0">
+        <div class="stat-label">Tu ganancia</div>
+        <div class="stat-value" [class.text-danger]="totales().ganancia < 0">
+          {{ totales().ganancia | currency: 'MXN' : 'symbol-narrow' : '1.0-0' }}
+        </div>
+        <div class="stat-hint">
+          @if (totales().comisiones) {
+            {{ totales().comisiones | currency: 'MXN' : 'symbol-narrow' : '1.0-0' }} en comisiones
+          } @else {
+            Ingresos menos costo real
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card stat">
+      <span class="stat-icon stat-info"><i class="bi bi-bag-check"></i></span>
+      <div class="min-w-0">
+        <div class="stat-label">Ventas</div>
+        <div class="stat-value">{{ totales().cantidad }}</div>
+        <div class="stat-hint">{{ totales().vendedores }} {{ totales().vendedores === 1 ? 'vendedor' : 'vendedores' }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card stat">
+      <span class="stat-icon stat-warning"><i class="bi bi-receipt"></i></span>
+      <div class="min-w-0">
+        <div class="stat-label">Venta promedio</div>
+        <div class="stat-value">{{ totales().promedio | currency: 'MXN' : 'symbol-narrow' : '1.0-0' }}</div>
+        <div class="stat-hint">Por artículo vendido</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (!loading() && totales().sinPrecio) {
+  <div class="alert alert-warning small py-2">
+    <i class="bi bi-info-circle me-1"></i>
+    {{ totales().sinPrecio }} {{ totales().sinPrecio === 1 ? 'venta no tiene' : 'ventas no tienen' }} precio final
+    registrado (se hicieron antes de agregar ese campo) y no suman en ingresos ni ganancia.
+  </div>
+}
+
+<!-- VENTAS POR USUARIO -->
+<div class="card overflow-hidden">
+  <div class="card-head">
+    <h6 class="mb-0 fw-semibold">Ventas por usuario</h6>
+    <span class="small text-muted">Toca un usuario para ver el detalle</span>
+  </div>
+
+  @if (loading()) {
+    @for (i of [1, 2, 3]; track i) {
+      <div class="fila">
+        <span class="skeleton avatar-skeleton"></span>
+        <div class="flex-grow-1">
+          <span class="skeleton" style="width: 30%"></span>
+          <span class="skeleton mt-2" style="width: 60%; height: 6px"></span>
+        </div>
+        <span class="skeleton" style="width: 90px"></span>
+      </div>
+    }
+  } @else {
+    @for (r of resumen(); track r.usuario.id; let pos = $index) {
+      <div class="usuario" [class.abierto]="expandido() === r.usuario.id">
+        <button type="button" class="fila" (click)="toggle(r.usuario.id)" [attr.aria-expanded]="expandido() === r.usuario.id">
+          <span class="posicion" [class.top]="pos < 3">{{ pos + 1 }}</span>
+          <span class="avatar {{ avatarColor(r.usuario.id) }}">{{ initials(r.usuario.nombre) }}</span>
+
+          <div class="flex-grow-1 min-w-0">
+            <div class="d-flex justify-content-between align-items-baseline gap-2">
+              <span class="fw-semibold text-truncate">{{ r.usuario.nombre }}</span>
+              <span class="total">{{ r.total | currency: 'MXN' : 'symbol-narrow' }}</span>
+            </div>
+            <div class="barra"><span [style.width.%]="(r.total / maxTotal()) * 100"></span></div>
+            <div class="meta">
+              <span><i class="bi bi-bag"></i>{{ r.ventas.length }} {{ r.ventas.length === 1 ? 'venta' : 'ventas' }}</span>
+              <span [class.text-success]="r.ganancia > 0" [class.text-danger]="r.ganancia < 0">
+                <i class="bi bi-graph-up-arrow"></i>Tu ganancia {{ r.ganancia | currency: 'MXN' : 'symbol-narrow' }}
+              </span>
+              @if (r.comision) {
+                <span class="text-primary">
+                  <i class="bi bi-person-check"></i>Comisión {{ r.comision | currency: 'MXN' : 'symbol-narrow' }}
+                </span>
+              }
+              <span><i class="bi bi-calendar3"></i>Última {{ r.ultimaVenta | date: 'dd/MM/yyyy' }}</span>
+            </div>
+          </div>
+
+          <i class="bi bi-chevron-down chevron"></i>
+        </button>
+
+        <!-- Detalle de ventas (se despliega) -->
+        <div class="detalle-wrap">
+          <div class="detalle-inner">
+            <table class="table table-sm align-middle mb-0 detalle">
+              <thead>
+                <tr class="text-muted small text-uppercase">
+                  <th>Fecha</th>
+                  <th>Producto</th>
+                  <th class="text-end">Costo</th>
+                  <th class="text-end">Precio final</th>
+                  @if (r.comision) {
+                    <th class="text-end">Comisión</th>
+                  }
+                  <th class="text-end">Tu ganancia</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (d of r.ventas; track d.venta.id) {
+                  <tr>
+                    <td class="text-muted text-nowrap">{{ d.venta.fecha_venta | date: 'dd/MM/yyyy' }}</td>
+                    <td class="text-truncate" style="max-width: 260px">{{ d.producto?.nombre ?? 'Producto eliminado' }}</td>
+                    <td class="text-end text-muted">{{ d.costo | currency: 'MXN' : 'symbol-narrow' }}</td>
+                    <td class="text-end fw-semibold">
+                      @if (d.venta.precio_final != null) {
+                        {{ d.venta.precio_final | currency: 'MXN' : 'symbol-narrow' }}
+                      } @else {
+                        <span class="text-muted fw-normal">—</span>
+                      }
+                    </td>
+                    @if (r.comision) {
+                      <td class="text-end text-primary">
+                        @if (d.comision != null) {
+                          {{ d.comision | currency: 'MXN' : 'symbol-narrow' }}
+                        } @else {
+                          <span class="text-muted">—</span>
+                        }
+                      </td>
+                    }
+                    <td class="text-end fw-semibold" [class.text-success]="(d.ganancia ?? 0) > 0" [class.text-danger]="(d.ganancia ?? 0) < 0">
+                      @if (d.ganancia != null) {
+                        {{ d.ganancia | currency: 'MXN' : 'symbol-narrow' }}
+                      } @else {
+                        <span class="text-muted fw-normal">—</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    } @empty {
+      <div class="empty-state">
+        <span class="empty-icon"><i class="bi bi-cash-stack"></i></span>
+        <h6 class="mb-1">Sin ventas en este período</h6>
+        <p class="text-muted small mb-0">Registra ventas desde Productos con el botón "Vender".</p>
+      </div>
+    }
+  }
+</div>

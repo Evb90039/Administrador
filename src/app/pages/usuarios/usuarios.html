@@ -1,0 +1,187 @@
+<div class="d-flex justify-content-between align-items-end mb-4 gap-3 flex-wrap">
+  <div>
+    <h2 class="mb-1 fw-semibold">Usuarios</h2>
+    <p class="text-muted small mb-0">Gestiona los usuarios de tu plataforma</p>
+  </div>
+  <button class="btn btn-primary" type="button" (click)="openCreate()">
+    <i class="bi bi-plus-lg me-1"></i> Nuevo usuario
+  </button>
+</div>
+
+@if (error()) {
+  <div class="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+    <span><i class="bi bi-exclamation-circle me-1"></i>{{ error() }}</span>
+    <button type="button" class="btn btn-sm btn-outline-danger" (click)="load()">Reintentar</button>
+  </div>
+}
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr class="text-muted small text-uppercase">
+            <th class="ps-4">#</th>
+            <th>Nombre</th>
+            <th>Teléfono</th>
+            <th>Rol</th>
+            <th class="text-end pe-4">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (loading()) {
+            <tr>
+              <td colspan="5" class="text-center text-muted py-5">
+                <span class="spinner-border spinner-border-sm me-2"></span>Cargando usuarios…
+              </td>
+            </tr>
+          } @else {
+            @for (u of usuarios(); track u.id) {
+              <tr>
+                <td class="ps-4">{{ u.id }}</td>
+                <td class="d-flex align-items-center gap-2">
+                  <span class="avatar-sm {{ rolStyles[u.rol].avatar }}">{{ initials(u.nombre) }}</span>
+                  <span>{{ u.nombre }}</span>
+                </td>
+                <td class="text-muted"><i class="bi bi-telephone me-1"></i>{{ u.telefono }}</td>
+                <td>
+                  <span class="badge rounded-pill {{ rolStyles[u.rol].badge }}">{{ u.rol }}</span>
+                </td>
+                <td class="text-end pe-4">
+                  <button class="btn btn-sm btn-light me-1" type="button" title="Editar" (click)="openEdit(u)">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button class="btn btn-sm btn-light text-danger" type="button" title="Eliminar" (click)="toDelete.set(u)">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="text-center text-muted py-5">
+                  <i class="bi bi-people fs-3 d-block mb-2"></i>
+                  Aún no hay usuarios. Crea el primero con "Nuevo usuario".
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CREAR / EDITAR -->
+@if (modalOpen()) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" (click)="closeModals()">
+    <div class="modal-dialog modal-dialog-centered" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <form #f="ngForm" (ngSubmit)="save(f)" novalidate>
+          <div class="modal-header gap-3">
+            <span class="modal-icon">
+              <i class="bi {{ editingId() === null ? 'bi-person-plus' : 'bi-pencil-square' }}"></i>
+            </span>
+            <div class="me-auto">
+              <h5 class="modal-title mb-0">{{ editingId() === null ? 'Nuevo usuario' : 'Editar usuario' }}</h5>
+              <small class="text-muted">
+                {{ editingId() === null ? 'Completa los datos para registrarlo' : 'Modifica los datos del usuario' }}
+              </small>
+            </div>
+            <button type="button" class="btn-close align-self-start" aria-label="Cerrar" (click)="closeModals()"></button>
+          </div>
+
+          <div class="modal-body">
+            @if (formError()) {
+              <div class="alert alert-danger py-2 small" role="alert">
+                <i class="bi bi-exclamation-circle me-1"></i>{{ formError() }}
+              </div>
+            }
+
+            <div class="mb-2">
+              <label class="form-label small fw-500" for="nombre">Nombre</label>
+              <input
+                id="nombre"
+                class="form-control"
+                name="nombre"
+                placeholder="Nombre completo"
+                [(ngModel)]="form.nombre"
+                #nombre="ngModel"
+                required
+                maxlength="100"
+                [class.is-invalid]="nombre.invalid && (nombre.touched || f.submitted)"
+              />
+              <div class="invalid-feedback">El nombre es obligatorio.</div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label small fw-500" for="telefono">Número telefónico</label>
+              <input
+                id="telefono"
+                type="tel"
+                inputmode="tel"
+                class="form-control"
+                name="telefono"
+                placeholder="Ej. 614 123 4567"
+                [(ngModel)]="form.telefono"
+                #telefono="ngModel"
+                required
+                pattern="^\+?[0-9\s\(\)\.\-]{7,20}$"
+                maxlength="20"
+                [class.is-invalid]="telefono.invalid && (telefono.touched || f.submitted)"
+              />
+              <div class="invalid-feedback">Ingresa un teléfono válido (7 a 15 dígitos, puede iniciar con +).</div>
+            </div>
+
+            <div class="mb-1">
+              <label class="form-label small fw-500" for="rol">Rol</label>
+              <select id="rol" class="form-select" name="rol" [(ngModel)]="form.rol" required>
+                @for (rol of roles; track rol) {
+                  <option [value]="rol">{{ rol }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light" (click)="closeModals()" [disabled]="saving()">Cancelar</button>
+            <button type="submit" class="btn btn-primary" [disabled]="saving()">
+              @if (saving()) {
+                <span class="spinner-border spinner-border-sm me-1"></span> Guardando…
+              } @else {
+                <i class="bi bi-check-lg me-1"></i> Guardar
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL CONFIRMAR ELIMINACIÓN -->
+@if (toDelete(); as u) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" (click)="closeModals()">
+    <div class="modal-dialog modal-dialog-centered modal-sm" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-body text-center p-4">
+          <span class="modal-icon danger mb-3"><i class="bi bi-trash"></i></span>
+          <h5 class="mb-2">¿Eliminar usuario?</h5>
+          <p class="text-muted small mb-0">
+            Se eliminará a <strong>{{ u.nombre }}</strong>. Esta acción no se puede deshacer.
+          </p>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" class="btn btn-light" (click)="closeModals()" [disabled]="saving()">Cancelar</button>
+          <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="saving()">
+            @if (saving()) {
+              <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

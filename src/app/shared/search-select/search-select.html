@@ -1,0 +1,62 @@
+<button
+  #trigger
+  type="button"
+  class="ss-trigger form-select"
+  [id]="inputId()"
+  [class.ss-open]="open()"
+  [disabled]="disabled()"
+  role="combobox"
+  aria-haspopup="listbox"
+  [attr.aria-expanded]="open()"
+  [attr.aria-controls]="inputId() + '-list'"
+  (click)="toggle()"
+  (keydown)="onTriggerKeydown($event)"
+>
+  @if (selected(); as s) {
+    <span class="ss-value">{{ s.label }}</span>
+  } @else {
+    <span class="ss-placeholder">{{ placeholder() }}</span>
+  }
+</button>
+
+@if (open()) {
+  <div class="ss-panel" [class.ss-drop-up]="dropUp()">
+    <div class="ss-search">
+      <i class="bi bi-search"></i>
+      <input
+        #search
+        type="text"
+        autocomplete="off"
+        [placeholder]="searchPlaceholder()"
+        [value]="query()"
+        [attr.aria-activedescendant]="filtered().length ? inputId() + '-opt-' + active() : null"
+        (input)="onSearch($any($event.target).value)"
+        (keydown)="onSearchKeydown($event)"
+      />
+    </div>
+
+    <ul #list class="ss-list" role="listbox" [id]="inputId() + '-list'">
+      @for (option of filtered(); track option.value; let i = $index) {
+        <li
+          role="option"
+          class="ss-option"
+          [id]="inputId() + '-opt-' + i"
+          [class.active]="i === active()"
+          [class.selected]="option.value === value()"
+          [attr.aria-selected]="option.value === value()"
+          (mouseenter)="active.set(i)"
+          (click)="select(option)"
+        >
+          <span>{{ option.label }}</span>
+          @if (option.value === value()) {
+            <i class="bi bi-check2"></i>
+          }
+        </li>
+      } @empty {
+        <li class="ss-empty">
+          <i class="bi bi-search me-1"></i>Sin resultados para "{{ query() }}"
+        </li>
+      }
+    </ul>
+  </div>
+}
