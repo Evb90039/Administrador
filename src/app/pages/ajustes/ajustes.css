@@ -12,6 +12,7 @@
   height: 1.3em;
   cursor: pointer;
 }
+
 .form-check-input:checked {
   background-color: var(--app-primary);
   border-color: var(--app-primary);
