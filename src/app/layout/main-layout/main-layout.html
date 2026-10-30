@@ -1,0 +1,79 @@
+<div class="admin-wrapper" [class.sidebar-collapsed]="!sidebarOpen()">
+  <!-- SIDEBAR -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <div class="brand-logo">
+          <i class="bi bi-hexagon-fill"></i>
+        </div>
+        <span class="brand-text sidebar-label">Admin</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <p class="sidebar-section sidebar-label">Menú</p>
+      <ul class="nav flex-column">
+        @for (item of menuItems; track item.route) {
+          <li class="nav-item">
+            <a
+              class="nav-link"
+              [routerLink]="item.route"
+              routerLinkActive="active"
+              [title]="item.label"
+            >
+              <i class="bi {{ item.icon }} nav-icon"></i>
+              <span class="sidebar-label">{{ item.label }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer sidebar-label">
+      <small class="text-muted">v1.0.0</small>
+    </div>
+  </aside>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <div class="admin-main">
+    <!-- NAVBAR SUPERIOR -->
+    <header class="admin-navbar">
+      <button class="toggle-btn" type="button" (click)="toggleSidebar()" aria-label="Toggle sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+
+      <div class="search-wrapper d-none d-md-flex">
+        <i class="bi bi-search"></i>
+        <input type="text" placeholder="Buscar…" />
+      </div>
+
+      <div class="navbar-actions">
+        <button class="icon-btn" title="Notificaciones">
+          <i class="bi bi-bell"></i>
+          <span class="dot"></span>
+        </button>
+
+        <div class="dropdown">
+          <button class="user-btn" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="avatar">EV</span>
+            <span class="d-none d-md-inline user-name">Enrique</span>
+            <i class="bi bi-chevron-down small"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+            <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Perfil</a></li>
+            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Ajustes</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="#" (click)="logout(); $event.preventDefault()"><i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión</a></li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENIDO DE LA PÁGINA -->
+    <main class="admin-content">
+      <div class="page-anim">
+        <router-outlet />
+      </div>
+    </main>
+  </div>
+</div>

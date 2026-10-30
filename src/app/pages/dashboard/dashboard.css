@@ -1,0 +1,90 @@
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.page-subtitle {
+  color: var(--app-muted);
+  margin: 0.1rem 0 0;
+  font-size: 0.9rem;
+}
+
+/* Stat cards */
+.stat-card .stat-label {
+  margin: 0;
+  color: var(--app-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+.stat-value {
+  margin: 0.15rem 0 0.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-size: 1.5rem;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  font-size: 1.25rem;
+  transition: transform 0.3s var(--app-ease);
+}
+.card-hover:hover .stat-icon { transform: scale(1.08) rotate(-4deg); }
+
+.stat-icon--primary { background: rgba(37, 99, 235, 0.14); color: #2563eb; }
+.stat-icon--success { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+.stat-icon--warning { background: rgba(245, 158, 11, 0.14); color: #f59e0b; }
+.stat-icon--info    { background: rgba(14, 165, 233, 0.12); color: #0ea5e9; }
+
+/* Activity area */
+.activity-chart {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-bg);
+  border-radius: var(--app-radius-sm);
+}
+
+/* Quick list */
+.quick-list { display: flex; flex-direction: column; gap: 0.4rem; }
+.quick-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--app-radius-sm);
+  color: var(--app-text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s var(--app-ease), transform 0.2s var(--app-ease);
+}
+.quick-item:hover {
+  background: var(--app-bg);
+  transform: translateX(3px);
+  color: var(--app-text);
+}
+.quick-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font-size: 0.95rem;
+}

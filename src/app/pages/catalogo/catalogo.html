@@ -1,0 +1,241 @@
+<div class="d-flex justify-content-between align-items-end mb-4 gap-3 flex-wrap">
+  <div>
+    <h2 class="mb-1 fw-semibold">Catálogo</h2>
+    <p class="text-muted small mb-0">
+      Artículos disponibles a la venta
+      @if (!loading() && productos().length) {
+        · {{ productos().length }} {{ productos().length === 1 ? 'artículo' : 'artículos' }}
+        · {{ valorVenta() | currency: 'MXN' : 'symbol-narrow' : '1.0-0' }} en venta
+        @if (sinPrecio()) {
+          · <span class="text-warning">{{ sinPrecio() }} sin precio</span>
+        }
+      }
+    </p>
+  </div>
+  <button class="btn btn-light" type="button" title="Recargar" (click)="load()" [disabled]="loading()">
+    <i class="bi bi-arrow-clockwise"></i>
+  </button>
+</div>
+
+@if (error()) {
+  <div class="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+    <span><i class="bi bi-exclamation-circle me-1"></i>{{ error() }}</span>
+    <button type="button" class="btn btn-sm btn-outline-danger" (click)="load()">Reintentar</button>
+  </div>
+}
+
+<!-- FILTROS -->
+<div class="card filtros mb-4">
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    <div class="busqueda">
+      <i class="bi bi-search"></i>
+      <input
+        type="search"
+        class="form-control"
+        placeholder="Buscar artículo…"
+        [value]="busqueda()"
+        (input)="busqueda.set($any($event.target).value)"
+      />
+    </div>
+    <select
+      class="form-select orden"
+      aria-label="Ordenar"
+      [value]="orden()"
+      (change)="orden.set($any($event.target).value)"
+    >
+      <option value="recientes">Más recientes</option>
+      <option value="precio-asc">Precio: menor a mayor</option>
+      <option value="precio-desc">Precio: mayor a menor</option>
+      <option value="nombre">Nombre (A–Z)</option>
+    </select>
+  </div>
+
+  @if (categoriasConProductos().length > 1) {
+    <div class="cat-chips">
+      <button type="button" class="cat-chip" [class.active]="categoriaId() === null" (click)="categoriaId.set(null)">
+        Todas <span>{{ productos().length }}</span>
+      </button>
+      @for (c of categoriasConProductos(); track c.id) {
+        <button type="button" class="cat-chip" [class.active]="categoriaId() === c.id" (click)="categoriaId.set(c.id)">
+          {{ c.nombre }} <span>{{ c.total }}</span>
+        </button>
+      }
+    </div>
+  }
+</div>
+
+<!-- CUADRÍCULA -->
+@if (loading()) {
+  <div class="grid">
+    @for (i of [1, 2, 3, 4, 5, 6, 7, 8]; track i) {
+      <div class="card item">
+        <div class="item-img skeleton-img"></div>
+        <div class="item-body">
+          <span class="skeleton" style="width: 50%"></span>
+          <span class="skeleton mt-2" style="width: 80%"></span>
+          <span class="skeleton mt-3" style="width: 35%"></span>
+        </div>
+      </div>
+    }
+  </div>
+} @else if (visibles().length) {
+  <div class="grid">
+    @for (p of visibles(); track p.id) {
+      @let imgs = imagenesOrdenadas(p);
+      @let c = comision(p);
+      <button type="button" class="card item" (click)="abrirDetalle(p)">
+        <div class="item-img">
+          @if (imgs[0]?.url; as url) {
+            <img [src]="url" [alt]="p.nombre" loading="lazy" />
+          } @else {
+            <span class="item-placeholder"><i class="bi bi-image"></i></span>
+          }
+          <span class="tienda-pill" [class.tienda-amazon]="p.tienda === 'Amazon'" [class.tienda-ml]="p.tienda === 'Mercado Libre'">
+            {{ p.tienda }}
+          </span>
+          @if (c?.monto) {
+            <span class="pct-ribbon" title="Comisión del vendedor sobre el precio de venta">{{ c!.porcentaje }}%</span>
+          }
+          @if (imgs.length > 1) {
+            <span class="item-count"><i class="bi bi-images"></i>{{ imgs.length }}</span>
+          }
+        </div>
+
+        <div class="item-body">
+          <span class="item-cat">{{ categoriaNombre().get(p.categoria_id) ?? '—' }}</span>
+          <h6 class="item-nombre" [title]="p.nombre">{{ p.nombre }}</h6>
+          <div class="item-precio">
+            @if (p.precio_venta != null) {
+              <span class="precio">{{ p.precio_venta | currency: 'MXN' : 'symbol-narrow' }}</span>
+              <span class="precio-tachado" title="Precio de compra">{{ p.precio_compra | currency: 'MXN' : 'symbol-narrow' }}</span>
+            } @else {
+              <span class="sin-precio">Sin precio</span>
+            }
+          </div>
+        </div>
+
+        @if (c) {
+          <div class="item-footer" [class.sin-comision]="!c.monto" title="Lo que gana un vendedor que no es Admin">
+            <span><i class="bi bi-person-check"></i>Comisión</span>
+            <strong>{{ c.monto ? (c.monto | currency: 'MXN' : 'symbol-narrow') : '—' }}</strong>
+          </div>
+        }
+      </button>
+    }
+  </div>
+} @else {
+  <div class="card">
+    <div class="empty-state">
+      @if (productos().length) {
+        <span class="empty-icon"><i class="bi bi-search"></i></span>
+        <h6 class="mb-1">Sin resultados</h6>
+        <p class="text-muted small mb-3">Ningún artículo coincide con la búsqueda.</p>
+        <button type="button" class="btn btn-sm btn-light" (click)="limpiarFiltros()">Limpiar filtros</button>
+      } @else {
+        <span class="empty-icon"><i class="bi bi-shop-window"></i></span>
+        <h6 class="mb-1">No hay artículos disponibles</h6>
+        <p class="text-muted small mb-0">Los productos con estado "Disponible" aparecerán aquí.</p>
+      }
+    </div>
+  </div>
+}
+
+<!-- DETALLE -->
+@if (detalle(); as p) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" (click)="cerrarDetalle()">
+    <div class="modal-dialog modal-dialog-centered modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-content overflow-hidden">
+        <div class="row g-0">
+          <!-- Galería -->
+          <div class="col-md-6 galeria">
+            <div class="galeria-main">
+              @if (detalleImagenes()[imagenActiva()]?.url; as url) {
+                <img [src]="url" [alt]="p.nombre" />
+              } @else {
+                <span class="item-placeholder"><i class="bi bi-image"></i></span>
+              }
+              @if (detalleImagenes().length > 1) {
+                <button type="button" class="galeria-nav prev" aria-label="Anterior" (click)="moverImagen(-1)">
+                  <i class="bi bi-chevron-left"></i>
+                </button>
+                <button type="button" class="galeria-nav next" aria-label="Siguiente" (click)="moverImagen(1)">
+                  <i class="bi bi-chevron-right"></i>
+                </button>
+              }
+            </div>
+            @if (detalleImagenes().length > 1) {
+              <div class="galeria-thumbs">
+                @for (img of detalleImagenes(); track img.id; let i = $index) {
+                  <button
+                    type="button"
+                    class="galeria-thumb"
+                    [class.active]="i === imagenActiva()"
+                    (click)="imagenActiva.set(i)"
+                  >
+                    @if (img.url) {
+                      <img [src]="img.url" alt="" />
+                    }
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Información -->
+          <div class="col-md-6 detalle-info">
+            <div class="d-flex justify-content-between align-items-center gap-2">
+              <div class="d-flex flex-wrap gap-2">
+                <span class="cat-pill">{{ categoriaNombre().get(p.categoria_id) ?? '—' }}</span>
+                <span class="tienda-pill static" [class.tienda-amazon]="p.tienda === 'Amazon'" [class.tienda-ml]="p.tienda === 'Mercado Libre'">
+                  {{ p.tienda }}
+                </span>
+              </div>
+              <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrarDetalle()"></button>
+            </div>
+
+            <h4 class="detalle-nombre">{{ p.nombre }}</h4>
+
+            <div class="detalle-precio">
+              <span class="detalle-label">Precio de venta</span>
+              @if (p.precio_venta != null) {
+                <div class="d-flex align-items-baseline flex-wrap gap-2">
+                  <span class="valor">{{ p.precio_venta | currency: 'MXN' : 'symbol-narrow' }}</span>
+                  <span class="precio-tachado" title="Precio de compra">{{ p.precio_compra | currency: 'MXN' : 'symbol-narrow' }}</span>
+                </div>
+              } @else {
+                <span class="sin-precio">Sin precio de venta</span>
+              }
+            </div>
+
+            @if (comision(p); as c) {
+              <div class="comision-card" [class.sin-comision]="!c.monto">
+                <span class="cc-icon"><i class="bi bi-person-check"></i></span>
+                <div class="flex-grow-1 min-w-0">
+                  <span class="detalle-label">Comisión para el vendedor</span>
+                  @if (c.monto) {
+                    <span class="cc-monto">{{ c.monto | currency: 'MXN' : 'symbol-narrow' }}</span>
+                  } @else {
+                    <span class="cc-nota">El precio de venta no supera el costo</span>
+                  }
+                </div>
+                @if (c.monto) {
+                  <div class="cc-pct">
+                    <strong>{{ c.porcentaje }}%</strong>
+                    <small>del precio</small>
+                  </div>
+                }
+              </div>
+            }
+
+            @if (p.enlace) {
+              <a class="btn btn-primary w-100 mt-auto" [href]="p.enlace" target="_blank" rel="noopener noreferrer">
+                <i class="bi bi-box-arrow-up-right me-1"></i> Ver en {{ p.tienda }}
+              </a>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+}

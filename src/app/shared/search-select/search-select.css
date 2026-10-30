@@ -1,0 +1,89 @@
+:host {
+  position: relative;
+  display: block;
+}
+
+.ss-trigger {
+  text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ss-trigger.ss-open {
+  border-color: var(--app-primary);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14);
+}
+.ss-placeholder { color: var(--app-muted); }
+
+:host(.is-invalid) .ss-trigger { border-color: var(--bs-form-invalid-border-color, #dc3545); }
+:host(.is-invalid) .ss-trigger:focus,
+:host(.is-invalid) .ss-trigger.ss-open { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.14); }
+
+/* ===== Panel ===== */
+.ss-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 1060;
+  padding: 0.5rem;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  box-shadow: var(--app-shadow-lg);
+  animation: ssIn 0.18s var(--app-ease);
+}
+.ss-panel.ss-drop-up { top: auto; bottom: calc(100% + 6px); }
+
+.ss-search {
+  position: relative;
+  margin-bottom: 0.4rem;
+}
+.ss-search i {
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--app-muted);
+  font-size: 0.85rem;
+}
+.ss-search input {
+  width: 100%;
+  padding: 0.45rem 0.75rem 0.45rem 2rem;
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  background: var(--app-bg);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s var(--app-ease), background-color 0.2s var(--app-ease);
+}
+.ss-search input:focus { border-color: var(--app-primary); background: var(--app-surface); }
+
+.ss-list {
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ss-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.ss-option.active { background: var(--app-primary-soft); }
+.ss-option.selected { color: var(--app-primary); font-weight: 600; }
+.ss-empty {
+  padding: 0.75rem;
+  text-align: center;
+  color: var(--app-muted);
+  font-size: 0.85rem;
+}
+
+@keyframes ssIn {
+  from { opacity: 0; transform: translateY(-4px); }
+}
