@@ -3,6 +3,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Producto, ProductosService, precioReal } from '../../services/productos';
 import { Usuario, UsuariosService } from '../../services/usuarios';
 import { Venta, VentasService, repartoGanancia } from '../../services/ventas';
+import { Loader } from '../../shared/loader/loader';
 
 type Periodo = 'mes' | 'mes-anterior' | 'anio' | 'todo';
 
@@ -50,7 +51,7 @@ const rango = (periodo: Periodo): [string, string] | null => {
 const AVATAR_COLORS = ['avatar-blue', 'avatar-green', 'avatar-amber', 'avatar-violet', 'avatar-rose', 'avatar-cyan'];
 
 @Component({
-  imports: [CurrencyPipe, DatePipe],
+  imports: [CurrencyPipe, DatePipe, Loader],
   selector: 'app-finanzas',
   styleUrl: './finanzas.css',
   templateUrl: './finanzas.html',

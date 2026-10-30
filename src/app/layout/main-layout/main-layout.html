@@ -71,6 +71,9 @@
 
     <!-- CONTENIDO DE LA PÁGINA -->
     <main class="admin-content">
+      @if (navigating()) {
+        <app-loader text="Cargando…" overlay />
+      }
       <div class="page-anim">
         <router-outlet />
       </div>
