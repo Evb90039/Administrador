@@ -3,6 +3,7 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { Proveedor, ProveedorInput, ProveedoresService } from '../../services/proveedores';
 import { Paginator } from '../../shared/paginator/paginator';
 import { normalizePhone, whatsappUrl } from '../../shared/phone';
+import { Loader } from '../../shared/loader/loader';
 
 const emptyForm = (): ProveedorInput => ({ nombre: '', telefono: '' });
 
@@ -13,7 +14,7 @@ const normalize = (s: string): string =>
 const AVATAR_COLORS = ['avatar-blue', 'avatar-green', 'avatar-amber', 'avatar-violet', 'avatar-rose', 'avatar-cyan'];
 
 @Component({
-  imports: [FormsModule, Paginator],
+  imports: [FormsModule, Paginator, Loader],
   selector: 'app-proveedores',
   styleUrl: './proveedores.css',
   templateUrl: './proveedores.html',

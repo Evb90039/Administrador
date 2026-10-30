@@ -3,6 +3,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ImagenesService, ProductoImagen } from '../../services/imagenes';
 import { Categoria, Producto, ProductosService, precioReal } from '../../services/productos';
 import { repartoGanancia } from '../../services/ventas';
+import { Loader } from '../../shared/loader/loader';
 
 type Orden = 'recientes' | 'precio-asc' | 'precio-desc' | 'nombre';
 
@@ -10,7 +11,7 @@ const normalize = (s: string): string =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
 @Component({
-  imports: [CurrencyPipe],
+  imports: [CurrencyPipe, Loader],
   selector: 'app-catalogo',
   styleUrl: './catalogo.css',
   templateUrl: './catalogo.html',

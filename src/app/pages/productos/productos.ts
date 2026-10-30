@@ -25,6 +25,7 @@ import { Proveedor, ProveedoresService } from '../../services/proveedores';
 import { Usuario, UsuariosService } from '../../services/usuarios';
 import { RepartoGanancia, Venta, VentasService, repartoGanancia } from '../../services/ventas';
 import { SearchSelect, SelectOption } from '../../shared/search-select/search-select';
+import { Loader } from '../../shared/loader/loader';
 
 interface ProductoForm {
   fecha_compra: string;
@@ -90,7 +91,7 @@ const emptyForm = (): ProductoForm => ({
 });
 
 @Component({
-  imports: [FormsModule, DatePipe, CurrencyPipe, DecimalPipe, SearchSelect],
+  imports: [FormsModule, DatePipe, CurrencyPipe, DecimalPipe, SearchSelect, Loader],
   selector: 'app-productos',
   styleUrl: './productos.css',
   templateUrl: './productos.html',

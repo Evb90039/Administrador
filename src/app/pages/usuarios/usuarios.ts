@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { ROLES, Rol, Usuario, UsuarioInput, UsuariosService } from '../../services/usuarios';
 import { normalizePhone } from '../../shared/phone';
+import { Loader } from '../../shared/loader/loader';
 
 const ROL_STYLES: Record<Rol, { badge: string; avatar: string }> = {
   Admin: { badge: 'text-bg-primary', avatar: 'bg-primary-soft text-primary' },
@@ -12,7 +13,7 @@ const ROL_STYLES: Record<Rol, { badge: string; avatar: string }> = {
 const emptyForm = (): UsuarioInput => ({ nombre: '', telefono: '', rol: 'Usuario' });
 
 @Component({
-  imports: [FormsModule],
+  imports: [FormsModule, Loader],
   selector: 'app-usuarios',
   styleUrl: './usuarios.css',
   templateUrl: './usuarios.html',

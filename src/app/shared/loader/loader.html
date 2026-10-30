@@ -1,0 +1,10 @@
+<span
+  class="app-loader app-loader-{{ size() }}"
+  role="status"
+  [attr.aria-label]="text() || 'Cargando'"
+>
+  <span class="loader-ring"></span>
+  @if (text()) {
+    <span class="loader-text">{{ text() }}</span>
+  }
+</span>

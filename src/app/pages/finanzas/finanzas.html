@@ -1,3 +1,7 @@
+<div class="position-relative">
+  @if (loading()) {
+    <app-loader text="Cargando…" overlay />
+  }
 <div class="d-flex justify-content-between align-items-end mb-4 gap-3 flex-wrap">
   <div>
     <h2 class="mb-1 fw-semibold">Finanzas</h2>
@@ -192,4 +196,5 @@
       </div>
     }
   }
+</div>
 </div>
