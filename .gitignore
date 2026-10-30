@@ -42,3 +42,6 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Local environment config (generated in CI from env vars)
+/src/environments/environment.ts
