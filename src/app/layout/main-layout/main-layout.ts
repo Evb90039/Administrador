@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, HostListener, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { Auth } from '../../services/auth';
 
@@ -18,7 +18,10 @@ export class MainLayout {
   private readonly auth = inject(Auth);
   private readonly router = inject(Router);
 
-  protected readonly sidebarOpen = signal(true);
+  // En móvil arranca cerrado; en escritorio, abierto.
+  protected readonly sidebarOpen = signal(
+    typeof window === 'undefined' || window.innerWidth > 768,
+  );
 
   protected readonly menuItems: MenuItem[] = [
     { label: 'Dashboard', icon: 'bi-speedometer2', route: '/dashboard' },
@@ -33,6 +36,10 @@ export class MainLayout {
 
   toggleSidebar(): void {
     this.sidebarOpen.update((v) => !v);
+  }
+
+  closeSidebarOnMobile(): void {
+    if (window.innerWidth <= 768) this.sidebarOpen.set(false);
   }
 
   async logout(): Promise<void> {
