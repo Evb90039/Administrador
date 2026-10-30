@@ -285,6 +285,10 @@
   padding: 1.75rem;
 }
 
+.sidebar-backdrop {
+  display: none;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
   .admin-sidebar {
@@ -296,5 +300,19 @@
     width: 0;
     border-right: 0;
   }
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 15;
+    background: rgba(15, 23, 42, 0.35);
+    animation: backdrop-in 0.2s var(--app-ease);
+  }
   .admin-content { padding: 1.1rem; }
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
 }

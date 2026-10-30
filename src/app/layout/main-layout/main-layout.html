@@ -20,6 +20,7 @@
               [routerLink]="item.route"
               routerLinkActive="active"
               [title]="item.label"
+              (click)="closeSidebarOnMobile()"
             >
               <i class="bi {{ item.icon }} nav-icon"></i>
               <span class="sidebar-label">{{ item.label }}</span>
@@ -33,6 +34,10 @@
       <small class="text-muted">v1.0.0</small>
     </div>
   </aside>
+
+  @if (sidebarOpen()) {
+    <div class="sidebar-backdrop" (click)="toggleSidebar()"></div>
+  }
 
   <!-- CONTENIDO PRINCIPAL -->
   <div class="admin-main">
