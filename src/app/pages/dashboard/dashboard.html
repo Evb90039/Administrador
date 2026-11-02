@@ -1,97 +1,242 @@
-<div class="page-header">
-  <div>
-    <h2 class="page-title">Dashboard</h2>
-    <p class="page-subtitle">Resumen general de tu actividad</p>
-  </div>
-  <button class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Nuevo</button>
-</div>
+<div class="position-relative">
+  @if (loading()) {
+    <app-loader text="Cargando…" overlay />
+  }
 
-<div class="row g-3 mb-4">
-  <div class="col-12 col-md-6 col-xl-3">
-    <div class="card card-hover stat-card">
-      <div class="card-body d-flex align-items-center gap-3">
-        <div class="stat-icon stat-icon--primary"><i class="bi bi-people"></i></div>
-        <div>
-          <p class="stat-label">Usuarios</p>
-          <h3 class="stat-value">1,250</h3>
-          <small class="text-success"><i class="bi bi-arrow-up-right"></i> 12.5%</small>
-        </div>
-      </div>
+  <!-- ENCABEZADO -->
+  <div class="d-flex justify-content-between align-items-end gap-3 flex-wrap">
+    <div>
+      <h2 class="mb-0 fw-semibold" style="font-size:1.4rem">Dashboard</h2>
+      <p class="text-muted small mb-0">Resumen general del negocio</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-light btn-sm" type="button" title="Recargar" (click)="load()" [disabled]="loading()">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+      <a class="btn btn-primary btn-sm" routerLink="/productos">
+        <i class="bi bi-plus-lg me-1"></i>Nuevo producto
+      </a>
     </div>
   </div>
-  <div class="col-12 col-md-6 col-xl-3">
-    <div class="card card-hover stat-card">
-      <div class="card-body d-flex align-items-center gap-3">
-        <div class="stat-icon stat-icon--success"><i class="bi bi-cart"></i></div>
-        <div>
-          <p class="stat-label">Ventas</p>
-          <h3 class="stat-value">340</h3>
-          <small class="text-success"><i class="bi bi-arrow-up-right"></i> 8.2%</small>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-12 col-md-6 col-xl-3">
-    <div class="card card-hover stat-card">
-      <div class="card-body d-flex align-items-center gap-3">
-        <div class="stat-icon stat-icon--warning"><i class="bi bi-exclamation-triangle"></i></div>
-        <div>
-          <p class="stat-label">Alertas</p>
-          <h3 class="stat-value">7</h3>
-          <small class="text-danger"><i class="bi bi-arrow-down-right"></i> 3.1%</small>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-12 col-md-6 col-xl-3">
-    <div class="card card-hover stat-card">
-      <div class="card-body d-flex align-items-center gap-3">
-        <div class="stat-icon stat-icon--info"><i class="bi bi-graph-up"></i></div>
-        <div>
-          <p class="stat-label">Reportes</p>
-          <h3 class="stat-value">15</h3>
-          <small class="text-success"><i class="bi bi-arrow-up-right"></i> 5.6%</small>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
-<div class="row g-3">
-  <div class="col-12 col-lg-8">
-    <div class="card">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="mb-0">Actividad reciente</h5>
-          <a href="#" class="small text-decoration-none">Ver todo</a>
+  @if (error()) {
+    <div class="alert alert-danger d-flex justify-content-between align-items-center py-2 my-0" role="alert">
+      <span><i class="bi bi-exclamation-circle me-1"></i>{{ error() }}</span>
+      <button type="button" class="btn btn-sm btn-outline-danger" (click)="load()">Reintentar</button>
+    </div>
+  }
+
+  <!-- KPIs -->
+  <div class="dash-row">
+    <div class="dash-col" style="flex:1 1 220px">
+      <div class="card kpi">
+        <div class="kpi-icon kpi-primary"><i class="bi bi-wallet2"></i></div>
+        <div class="min-w-0">
+          <span class="kpi-label">Invertido real</span>
+          <span class="kpi-value">{{ stats().invertido | currency: 'MXN' : 'symbol-narrow' : '1.0-0' }}</span>
+          <span class="kpi-hint">
+            @if (stats().reembolsado > 0) {
+              − {{ stats().reembolsado | currency: 'MXN' : 'symbol-narrow' : '1.0-0' }} reembolsado
+            } @else {
+              Capital en productos
+            }
+          </span>
         </div>
-        <div class="activity-chart">
-          <i class="bi bi-bar-chart-line display-3 text-muted opacity-25"></i>
-          <p class="text-muted mt-2 mb-0 small">Aquí irá tu gráfica</p>
+      </div>
+    </div>
+    <div class="dash-col" style="flex:1 1 220px">
+      <div class="card kpi">
+        <div class="kpi-icon kpi-success"><i class="bi bi-cash-coin"></i></div>
+        <div class="min-w-0">
+          <span class="kpi-label">Ganancia total</span>
+          <span class="kpi-value">{{ stats().ganancia | currency: 'MXN' : 'symbol-narrow' : '1.0-0' }}</span>
+          <span class="kpi-hint">Precio final menos costo</span>
+        </div>
+      </div>
+    </div>
+    <div class="dash-col" style="flex:1 1 220px">
+      <div class="card kpi">
+        <div class="kpi-icon kpi-info"><i class="bi bi-bag-check"></i></div>
+        <div class="min-w-0">
+          <span class="kpi-label">Vendidos</span>
+          <span class="kpi-value">{{ stats().vendidos | number }}</span>
+          <div class="kpi-progress" [title]="stats().pctVendidos + '% del inventario'">
+            <span [style.width.%]="stats().pctVendidos"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dash-col" style="flex:1 1 220px">
+      <div class="card kpi">
+        <div class="kpi-icon kpi-warning"><i class="bi bi-box-seam"></i></div>
+        <div class="min-w-0">
+          <span class="kpi-label">Disponibles</span>
+          <span class="kpi-value">{{ stats().disponibles | number }}</span>
+          <span class="kpi-hint">De {{ stats().total | number }} totales</span>
         </div>
       </div>
     </div>
   </div>
-  <div class="col-12 col-lg-4">
-    <div class="card">
-      <div class="card-body">
-        <h5 class="mb-3">Accesos rápidos</h5>
-        <div class="quick-list">
-          <a class="quick-item">
-            <span class="quick-icon stat-icon--primary"><i class="bi bi-plus-circle"></i></span>
-            <span>Nuevo usuario</span>
-            <i class="bi bi-chevron-right ms-auto text-muted"></i>
-          </a>
-          <a class="quick-item">
-            <span class="quick-icon stat-icon--success"><i class="bi bi-box-seam"></i></span>
-            <span>Nuevo producto</span>
-            <i class="bi bi-chevron-right ms-auto text-muted"></i>
-          </a>
-          <a class="quick-item">
-            <span class="quick-icon stat-icon--info"><i class="bi bi-file-earmark-text"></i></span>
-            <span>Generar reporte</span>
-            <i class="bi bi-chevron-right ms-auto text-muted"></i>
-          </a>
+
+  <!-- SEGUNDA FILA: ventas del mes + gráfica -->
+  <div class="dash-row grow">
+    <div class="dash-col" style="flex:1 1 280px">
+      <div class="card card-mes">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div class="min-w-0">
+              <span class="kpi-label">Ventas del mes</span>
+              <h3 class="mes-valor">{{ mesActual().totalVentas | currency: 'MXN' : 'symbol-narrow' : '1.0-0' }}</h3>
+              <small class="text-muted">{{ mesActual().count }} {{ mesActual().count === 1 ? 'venta' : 'ventas' }}</small>
+            </div>
+            <span class="cambio" [class.positivo]="cambioMes() >= 0" [class.negativo]="cambioMes() < 0">
+              <i class="bi" [class.bi-arrow-up-right]="cambioMes() >= 0" [class.bi-arrow-down-right]="cambioMes() < 0"></i>
+              {{ cambioMes() >= 0 ? '+' : '' }}{{ cambioMes() }}%
+            </span>
+          </div>
+
+          <div class="comparativa">
+            <small class="text-muted">vs mes anterior</small>
+            <strong>{{ mesAnterior().totalVentas | currency: 'MXN' : 'symbol-narrow' : '1.0-0' }}</strong>
+          </div>
+
+          @if (isBrowser) {
+            <div class="spark-wrap">
+              <apx-chart
+                [series]="sparkSeries()"
+                [chart]="sparkOptions"
+                [stroke]="sparkStroke"
+                [colors]="sparkColors"
+                [fill]="sparkFill"
+                [tooltip]="sparkTooltip"
+              />
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-col" style="flex:2 1 420px">
+      <div class="card card-chart">
+        <div class="card-body">
+          <div class="card-section-title">
+            <div>
+              <h5>Ventas y ganancia</h5>
+              <small class="text-muted">Últimos 6 meses</small>
+            </div>
+          </div>
+          <div class="chart-area">
+            @if (isBrowser) {
+              <apx-chart
+                [series]="chartSeries()"
+                [chart]="chartOptions()"
+                [xaxis]="chartXaxis()"
+                [yaxis]="chartYaxis()"
+                [stroke]="chartStroke"
+                [colors]="chartColors"
+                [dataLabels]="chartDataLabels"
+                [legend]="chartLegend"
+                [grid]="chartGrid"
+                [tooltip]="chartTooltip"
+                [fill]="chartFill"
+              />
+            } @else {
+              <div class="chart-placeholder"><i class="bi bi-bar-chart-line"></i></div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TERCERA FILA: top vendedores + accesos rápidos -->
+  <div class="dash-row grow">
+    <div class="dash-col" style="flex:2 1 420px">
+      <div class="card card-vendedores">
+        <div class="card-body">
+          <div class="card-section-title">
+            <div>
+              <h5>Top vendedores</h5>
+              <small class="text-muted">
+                {{ comisionesTotales() | currency: 'MXN' : 'symbol-narrow' : '1.0-0' }} en comisiones
+              </small>
+            </div>
+            <a class="btn btn-sm btn-light" routerLink="/usuarios">
+              Ver todos <i class="bi bi-chevron-right ms-1 small"></i>
+            </a>
+          </div>
+
+          @if (topVendedores().length) {
+            <div class="vendedores">
+              @for (v of topVendedores(); track v.usuario.id; let i = $index) {
+                <div class="vendedor-row">
+                  <span class="vendedor-rank">{{ i + 1 }}</span>
+                  <span class="vendedor-avatar">{{ iniciales(v.usuario.nombre) }}</span>
+                  <div class="min-w-0 flex-grow-1">
+                    <div class="vendedor-nombre text-truncate">{{ v.usuario.nombre }}</div>
+                    <small class="text-muted">
+                      {{ v.usuario.rol }} · {{ v.ventas }} {{ v.ventas === 1 ? 'venta' : 'ventas' }}
+                    </small>
+                  </div>
+                  <div class="text-end">
+                    <div class="vendedor-comision">
+                      {{ v.comision | currency: 'MXN' : 'symbol-narrow' : '1.0-0' }}
+                    </div>
+                    <small class="text-muted">comisión</small>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty-state py-3">
+              <span class="empty-icon"><i class="bi bi-person-check"></i></span>
+              <p class="text-muted small mb-0">Aún no hay ventas con vendedor asignado.</p>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-col" style="flex:1 1 280px">
+      <div class="card card-quick">
+        <div class="card-body">
+          <div class="card-section-title">
+            <h5>Accesos rápidos</h5>
+          </div>
+          <div class="quick-grid">
+            <a class="quick-tile" routerLink="/productos">
+              <span class="quick-icon kpi-primary"><i class="bi bi-box-seam"></i></span>
+              <div>
+                <span class="quick-title">Productos</span>
+                <small>Gestionar inventario</small>
+              </div>
+              <i class="bi bi-chevron-right text-muted"></i>
+            </a>
+            <a class="quick-tile" routerLink="/catalogo">
+              <span class="quick-icon kpi-info"><i class="bi bi-shop-window"></i></span>
+              <div>
+                <span class="quick-title">Catálogo público</span>
+                <small>Ver cómo se ve</small>
+              </div>
+              <i class="bi bi-chevron-right text-muted"></i>
+            </a>
+            <a class="quick-tile" routerLink="/usuarios">
+              <span class="quick-icon kpi-success"><i class="bi bi-people"></i></span>
+              <div>
+                <span class="quick-title">Vendedores</span>
+                <small>Gestionar usuarios</small>
+              </div>
+              <i class="bi bi-chevron-right text-muted"></i>
+            </a>
+            <a class="quick-tile" routerLink="/proveedores">
+              <span class="quick-icon kpi-warning"><i class="bi bi-truck"></i></span>
+              <div>
+                <span class="quick-title">Proveedores</span>
+                <small>Contactos y datos</small>
+              </div>
+              <i class="bi bi-chevron-right text-muted"></i>
+            </a>
+          </div>
         </div>
       </div>
     </div>

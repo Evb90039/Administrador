@@ -1,17 +1,33 @@
-import { CurrencyPipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { CurrencyPipe, isPlatformBrowser } from '@angular/common';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  OnInit,
+  PLATFORM_ID,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { ImagenesService, ProductoImagen } from '../../services/imagenes';
 import { Categoria, Producto, ProductosService, precioReal } from '../../services/productos';
 import { repartoGanancia } from '../../services/ventas';
 import { Loader } from '../../shared/loader/loader';
+import { Paginator } from '../../shared/paginator/paginator';
 
 type Orden = 'recientes' | 'precio-asc' | 'precio-desc' | 'nombre';
 
 const normalize = (s: string): string =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
+// Mínimo de productos a mostrar por página para evitar páginas casi vacías.
+const MIN_PAGE_SIZE = 4;
+
 @Component({
-  imports: [CurrencyPipe, Loader],
+  imports: [CurrencyPipe, Loader, Paginator],
   selector: 'app-catalogo',
   styleUrl: './catalogo.css',
   templateUrl: './catalogo.html',
@@ -20,6 +36,8 @@ const normalize = (s: string): string =>
 export class Catalogo implements OnInit {
   private readonly productosService = inject(ProductosService);
   private readonly imagenesService = inject(ImagenesService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   protected readonly productos = signal<Producto[]>([]);
   protected readonly categorias = signal<Categoria[]>([]);
@@ -76,10 +94,19 @@ export class Catalogo implements OnInit {
     }
   });
 
-  protected readonly valorVenta = computed(() =>
-    this.productos().reduce((sum, p) => sum + (p.precio_venta ?? 0), 0),
-  );
-  protected readonly sinPrecio = computed(() => this.productos().filter((p) => p.precio_venta == null).length);
+  // ===== Paginación =====
+  // pageSize se calcula dinámicamente para llenar justo el espacio disponible
+  // sin generar scroll (filas × columnas visibles en el viewport).
+  protected readonly page = signal(1);
+  protected readonly pageSize = signal(12);
+  protected readonly visiblesPaginadas = computed(() => {
+    const size = this.pageSize();
+    const list = this.visibles();
+    const page = Math.min(this.page(), Math.max(1, Math.ceil(list.length / size)));
+    return list.slice((page - 1) * size, page * size);
+  });
+
+  private readonly gridWrapper = viewChild<ElementRef<HTMLElement>>('gridWrapper');
 
   // ===== Detalle =====
   protected readonly detalle = signal<Producto | null>(null);
@@ -88,6 +115,64 @@ export class Catalogo implements OnInit {
     const p = this.detalle();
     return p ? this.imagenesOrdenadas(p) : [];
   });
+
+  constructor() {
+    // Reset de página al cambiar cualquier filtro.
+    effect(() => {
+      this.busqueda();
+      this.categoriaId();
+      this.orden();
+      this.page.set(1);
+    });
+
+    // Ajuste automático del tamaño de página según el espacio disponible.
+    if (this.isBrowser) {
+      afterNextRender(() => this.setupAutoPageSize());
+    }
+  }
+
+  private setupAutoPageSize(): void {
+    const update = () => {
+      const wrapper = this.gridWrapper()?.nativeElement;
+      if (!wrapper) return;
+
+      const grid = wrapper.querySelector('.grid') as HTMLElement | null;
+      const rect = (grid ?? wrapper).getBoundingClientRect();
+      if (rect.width < 1) return;
+
+      const style = window.getComputedStyle(grid ?? wrapper);
+      const gap = parseFloat(style.rowGap || style.gap || '20') || 20;
+
+      // Lee las columnas reales que calculó el browser (respeta media queries,
+      // auto-fill, etc.) en vez de hardcodear anchos mínimos.
+      const cols = Math.max(
+        1,
+        (style.gridTemplateColumns || '').split(' ').filter(Boolean).length,
+      );
+
+      // Mide la altura real de un card renderizado; si no hay cards todavía,
+      // estima: ancho de columna (imagen cuadrada) + cuerpo + footer.
+      const sampleCard = grid?.querySelector('.item') as HTMLElement | null;
+      const colWidth = (rect.width - (cols - 1) * gap) / cols;
+      const cardHeight = sampleCard?.getBoundingClientRect().height || colWidth + 140;
+
+      // Alto disponible = del top del grid hasta el fondo del viewport,
+      // reservando ~56 px para el paginador y un margen.
+      const available = window.innerHeight - rect.top - 56 - 12;
+      const rows = Math.max(1, Math.floor((available + gap) / (cardHeight + gap)));
+
+      const size = Math.max(MIN_PAGE_SIZE, cols * rows);
+      if (size !== this.pageSize()) this.pageSize.set(size);
+    };
+
+    // Dos pasadas: la primera estima; la segunda, tras renderizar, usa la altura real.
+    update();
+    requestAnimationFrame(update);
+
+    const ro = new ResizeObserver(() => update());
+    ro.observe(document.body);
+    this.destroyRef.onDestroy(() => ro.disconnect());
+  }
 
   ngOnInit(): void {
     this.load();

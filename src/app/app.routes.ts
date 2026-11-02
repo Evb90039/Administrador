@@ -9,6 +9,11 @@ export const routes: Routes = [
     canActivate: [guestGuard],
   },
   {
+    // Catálogo público: fuera del MainLayout y sin authGuard.
+    path: 'catalogo',
+    loadComponent: () => import('./pages/catalogo/catalogo').then((m) => m.Catalogo),
+  },
+  {
     path: '',
     component: MainLayout,
     canActivate: [authGuard],
@@ -29,10 +34,6 @@ export const routes: Routes = [
       {
         path: 'productos',
         loadComponent: () => import('./pages/productos/productos').then((m) => m.Productos),
-      },
-      {
-        path: 'catalogo',
-        loadComponent: () => import('./pages/catalogo/catalogo').then((m) => m.Catalogo),
       },
       {
         path: 'finanzas',

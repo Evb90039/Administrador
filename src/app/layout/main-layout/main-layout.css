@@ -21,6 +21,8 @@
   flex-direction: column;
   transition: width 0.3s var(--app-ease);
   overflow: hidden;
+  /* Lo saca del snapshot "root" de las view transitions: no parpadea al navegar */
+  view-transition-name: admin-sidebar;
 }
 
 .admin-wrapper.sidebar-collapsed .admin-sidebar {
@@ -151,6 +153,9 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  /* Fija el alto al viewport para que el scroll quede dentro del contenido,
+     no en la página entera (sidebar y navbar permanecen visibles). */
+  height: 100vh;
 }
 
 /* ===== NAVBAR ===== */
@@ -282,7 +287,9 @@
 /* ===== CONTENT ===== */
 .admin-content {
   flex: 1 1 auto;
+  min-height: 0;
   padding: 1.75rem;
+  overflow-y: auto;
 }
 
 .sidebar-backdrop {

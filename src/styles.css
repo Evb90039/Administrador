@@ -190,6 +190,12 @@ body {
   animation-name: vt-fade-in;
 }
 
+/* El sidebar tiene su propio grupo: se muestra estático, sin fade ni salto */
+::view-transition-old(admin-sidebar),
+::view-transition-new(admin-sidebar) {
+  animation: none;
+}
+
 @keyframes vt-fade-out {
   to { opacity: 0; transform: translateY(-4px); }
 }
