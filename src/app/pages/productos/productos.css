@@ -63,6 +63,11 @@
 .productos-table > :not(caption) > * > * { padding-top: 0.85rem; padding-bottom: 0.85rem; }
 .productos-table thead th { font-size: 0.7rem; }
 
+/* Doble clic sobre la fila abre el editar; evita seleccionar texto al hacerlo. */
+.row-selectable { cursor: default; }
+.row-selectable:hover { cursor: pointer; }
+.productos-table tbody tr.row-selectable { user-select: none; }
+
 .product-avatar {
   width: 40px;
   height: 40px;

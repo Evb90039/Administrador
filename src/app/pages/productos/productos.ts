@@ -1,5 +1,17 @@
-import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { CurrencyPipe, DatePipe, DecimalPipe, isPlatformBrowser } from '@angular/common';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  OnInit,
+  PLATFORM_ID,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import {
   Categoria,
@@ -26,6 +38,7 @@ import { Usuario, UsuariosService } from '../../services/usuarios';
 import { RepartoGanancia, Venta, VentasService, repartoGanancia } from '../../services/ventas';
 import { SearchSelect, SelectOption } from '../../shared/search-select/search-select';
 import { Loader } from '../../shared/loader/loader';
+import { Paginator } from '../../shared/paginator/paginator';
 
 interface ProductoForm {
   fecha_compra: string;
@@ -91,7 +104,7 @@ const emptyForm = (): ProductoForm => ({
 });
 
 @Component({
-  imports: [FormsModule, DatePipe, CurrencyPipe, DecimalPipe, SearchSelect, Loader],
+  imports: [FormsModule, DatePipe, CurrencyPipe, DecimalPipe, SearchSelect, Loader, Paginator],
   selector: 'app-productos',
   styleUrl: './productos.css',
   templateUrl: './productos.html',
@@ -222,6 +235,62 @@ export class Productos implements OnInit {
           normalize(this.proveedorNombre().get(p.proveedor_id ?? -1) ?? '').includes(q)),
     );
   });
+
+  // ===== Paginación =====
+  // Tamaño por página calculado dinámicamente para que la tabla + paginador quepan
+  // sin generar scroll de página. Se ajusta al redimensionar la ventana.
+  protected readonly page = signal(1);
+  protected readonly pageSize = signal(8);
+  protected readonly productosPaginados = computed(() => {
+    const size = this.pageSize();
+    const list = this.productosFiltrados();
+    // Si cambian los filtros y la página queda fuera de rango, se recorta a la última válida.
+    const page = Math.min(this.page(), Math.max(1, Math.ceil(list.length / size)));
+    return list.slice((page - 1) * size, page * size);
+  });
+
+  private readonly tableWrapper = viewChild<ElementRef<HTMLElement>>('tableWrapper');
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+
+  constructor() {
+    // Al cambiar cualquier filtro vuelve a la primera página.
+    effect(() => {
+      this.busqueda();
+      this.filtroEstado();
+      this.filtroResena();
+      this.filtroTienda();
+      this.page.set(1);
+    });
+
+    // Ajusta el pageSize según el espacio real disponible debajo del encabezado
+    // de la tabla, para que las filas visibles entren exactamente sin scroll.
+    if (this.isBrowser) {
+      afterNextRender(() => this.setupAutoPageSize());
+    }
+  }
+
+  private setupAutoPageSize(): void {
+    const update = () => {
+      const wrapper = this.tableWrapper()?.nativeElement;
+      if (!wrapper) return;
+      const thead = wrapper.querySelector('thead') as HTMLElement | null;
+      const sampleRow = wrapper.querySelector('tbody tr') as HTMLElement | null;
+      const headH = thead?.getBoundingClientRect().height ?? 44;
+      const rowH = sampleRow?.getBoundingClientRect().height || 68;
+      // Espacio desde donde empieza la tabla hasta el borde inferior del viewport,
+      // reservando sitio para el paginador (~56px) y un pequeño margen.
+      const top = wrapper.getBoundingClientRect().top;
+      const available = window.innerHeight - top - 56 - 12;
+      const rows = Math.max(3, Math.floor((available - headH) / rowH));
+      if (rows !== this.pageSize()) this.pageSize.set(rows);
+    };
+
+    update();
+    const ro = new ResizeObserver(() => update());
+    ro.observe(document.body);
+    this.destroyRef.onDestroy(() => ro.disconnect());
+  }
 
   protected readonly stats = computed(() => {
     const list = this.productos();

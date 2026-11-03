@@ -145,7 +145,7 @@
   </div>
 
   <!-- TABLA -->
-  <div class="table-responsive">
+  <div class="table-responsive" #tableWrapper>
     <table class="table table-hover align-middle mb-0 productos-table">
       <thead>
         <tr class="text-muted small text-uppercase">
@@ -178,8 +178,8 @@
             </tr>
           }
         } @else {
-          @for (p of productosFiltrados(); track p.id) {
-            <tr>
+          @for (p of productosPaginados(); track p.id) {
+            <tr class="row-selectable" (dblclick)="openEdit(p)" title="Doble clic para editar">
               <!-- Producto -->
               <td class="ps-4">
                 <div class="d-flex align-items-center gap-3">
@@ -327,6 +327,15 @@
       </tbody>
     </table>
   </div>
+
+  @if (!loading() && productosFiltrados().length) {
+    <app-paginator
+      [total]="productosFiltrados().length"
+      [(page)]="page"
+      [pageSize]="pageSize()"
+      [pageSizes]="[]"
+    />
+  }
 </div>
 
 <!-- MODAL CREAR / EDITAR (por pestañas) -->

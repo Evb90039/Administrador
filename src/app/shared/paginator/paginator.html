@@ -1,17 +1,21 @@
 <div class="paginator">
   <div class="pg-info">
-    <span>Mostrar</span>
-    <select
-      class="form-select form-select-sm pg-size"
-      aria-label="Filas por página"
-      [value]="pageSize()"
-      (change)="changeSize($any($event.target).value)"
-    >
-      @for (s of pageSizes(); track s) {
-        <option [value]="s" [selected]="s === pageSize()">{{ s }}</option>
-      }
-    </select>
-    <span class="d-none d-sm-inline">· {{ from() }}–{{ to() }} de {{ total() }}</span>
+    @if (pageSizes().length) {
+      <span>Mostrar</span>
+      <select
+        class="form-select form-select-sm pg-size"
+        aria-label="Filas por página"
+        [value]="pageSize()"
+        (change)="changeSize($any($event.target).value)"
+      >
+        @for (s of pageSizes(); track s) {
+          <option [value]="s" [selected]="s === pageSize()">{{ s }}</option>
+        }
+      </select>
+      <span class="d-none d-sm-inline">· {{ from() }}–{{ to() }} de {{ total() }}</span>
+    } @else {
+      <span>{{ from() }}–{{ to() }} de {{ total() }}</span>
+    }
   </div>
 
   <nav class="pg-nav" aria-label="Paginación">
