@@ -11,11 +11,18 @@ export interface ProductoImagen {
   url: string | null;
 }
 
+// Opciones de transformación on-the-fly de Supabase Storage.
+// Requiere "Image Transformations" habilitado en el proyecto (plan Pro / self-hosted).
+export interface ImagenTransform {
+  width?: number;
+  height?: number;
+  resize?: 'cover' | 'contain' | 'fill';
+  quality?: number;
+}
+
 const BUCKET = 'productos';
 const TABLE = 'producto_imagenes';
 const COLUMNS = 'id, producto_id, path, orden';
-// Los enlaces firmados vencen; al recargar la página se generan nuevos.
-const SIGNED_URL_SECONDS = 60 * 60;
 
 export const MAX_IMAGENES = 6;
 export const MAX_IMAGEN_BYTES = 5 * 1024 * 1024;
@@ -36,14 +43,16 @@ const MESSAGES: Record<string, string> = {
 export class ImagenesService {
   private readonly supabase = inject(Supabase);
 
-  async list(): Promise<ProductoImagen[]> {
+  async list(transform?: ImagenTransform): Promise<ProductoImagen[]> {
     const { data, error } = await this.db().from(TABLE).select(COLUMNS).order('orden');
     if (error) throw toDbError(error, MESSAGES);
-    return this.withUrls(data);
+    return this.withUrls(data, transform);
   }
 
   // Imágenes solo de los productos indicados (evita firmar enlaces que no se van a mostrar).
-  async listFor(productoIds: number[]): Promise<ProductoImagen[]> {
+  // Si se pasa `transform`, Supabase sirve una versión redimensionada en WebP
+  // (mucho más ligera que la original) via Image Transformations.
+  async listFor(productoIds: number[], transform?: ImagenTransform): Promise<ProductoImagen[]> {
     if (!productoIds.length) return [];
     const { data, error } = await this.db()
       .from(TABLE)
@@ -51,7 +60,7 @@ export class ImagenesService {
       .in('producto_id', productoIds)
       .order('orden');
     if (error) throw toDbError(error, MESSAGES);
-    return this.withUrls(data);
+    return this.withUrls(data, transform);
   }
 
   async upload(productoId: number, files: File[], startOrden: number): Promise<ProductoImagen[]> {
@@ -62,7 +71,8 @@ export class ImagenesService {
         const path = `${productoId}/${crypto.randomUUID()}.${EXTENSIONES[file.type] ?? 'img'}`;
         const { error } = await db.storage
           .from(BUCKET)
-          .upload(path, file, { contentType: file.type, upsert: false, cacheControl: '3600' });
+          // cacheControl de 1 año: los paths usan UUID único, nunca se reemplazan.
+          .upload(path, file, { contentType: file.type, upsert: false, cacheControl: '31536000' });
         if (error) throw new Error(`No se pudo subir "${file.name}": ${error.message}`);
         paths.push(path);
       }
@@ -91,13 +101,19 @@ export class ImagenesService {
     if (paths.length) await this.db().storage.from(BUCKET).remove(paths);
   }
 
-  private async withUrls(rows: Omit<ProductoImagen, 'url'>[]): Promise<ProductoImagen[]> {
+  private async withUrls(
+    rows: Omit<ProductoImagen, 'url'>[],
+    transform?: ImagenTransform,
+  ): Promise<ProductoImagen[]> {
     if (!rows.length) return [];
-    const { data } = await this.db()
-      .storage.from(BUCKET)
-      .createSignedUrls(rows.map((r) => r.path), SIGNED_URL_SECONDS);
-    const urls = new Map((data ?? []).map((d) => [d.path, d.signedUrl]));
-    return rows.map((r) => ({ ...r, url: urls.get(r.path) ?? null }));
+    const bucket = this.db().storage.from(BUCKET);
+
+    // Bucket público: URLs estáticas, síncronas, cacheables por el navegador.
+    // No requiere round-trip para firmar.
+    return rows.map((r) => {
+      const { data } = bucket.getPublicUrl(r.path, transform ? { transform } : undefined);
+      return { ...r, url: data?.publicUrl ?? null };
+    });
   }
 
   private db(): SupabaseClient {

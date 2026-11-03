@@ -83,13 +83,21 @@
         </div>
       } @else if (visibles().length) {
         <div class="grid">
-          @for (p of visiblesPaginadas(); track p.id) {
+          @for (p of visiblesPaginadas(); track p.id; let i = $index) {
             @let imgs = imagenesOrdenadas(p);
             @let c = comision(p);
             <button type="button" class="item" (click)="abrirDetalle(p)">
               <div class="item-img">
                 @if (imgs[0]?.url; as url) {
-                  <img [src]="url" [alt]="p.nombre" loading="lazy" />
+                  <img
+                    [src]="url"
+                    [alt]="p.nombre"
+                    width="400"
+                    height="400"
+                    decoding="async"
+                    [attr.loading]="i < 8 ? 'eager' : 'lazy'"
+                    [attr.fetchpriority]="i < 4 ? 'high' : 'auto'"
+                  />
                 } @else {
                   <span class="item-placeholder"><i class="bi bi-image"></i></span>
                 }
@@ -167,7 +175,7 @@
             <div class="col-md-6 galeria">
               <div class="galeria-main">
                 @if (detalleImagenes()[imagenActiva()]?.url; as url) {
-                  <img [src]="url" [alt]="p.nombre" />
+                  <img [src]="url" [alt]="p.nombre" decoding="async" fetchpriority="high" />
                 } @else {
                   <span class="item-placeholder"><i class="bi bi-image"></i></span>
                 }
