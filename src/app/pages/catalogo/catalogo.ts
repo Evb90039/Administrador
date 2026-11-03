@@ -13,7 +13,12 @@ import {
   viewChild,
 } from '@angular/core';
 import { ImagenesService, ProductoImagen } from '../../services/imagenes';
-import { Categoria, Producto, ProductosService, precioReal } from '../../services/productos';
+import {
+  Categoria,
+  ProductoCatalogo,
+  ProductosService,
+  precioReal,
+} from '../../services/productos';
 import { repartoGanancia } from '../../services/ventas';
 import { Loader } from '../../shared/loader/loader';
 import { Paginator } from '../../shared/paginator/paginator';
@@ -39,7 +44,7 @@ export class Catalogo implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
-  protected readonly productos = signal<Producto[]>([]);
+  protected readonly productos = signal<ProductoCatalogo[]>([]);
   protected readonly categorias = signal<Categoria[]>([]);
   protected readonly imagenes = signal<ProductoImagen[]>([]);
 
@@ -80,7 +85,7 @@ export class Catalogo implements OnInit {
           normalize(this.categoriaNombre().get(p.categoria_id) ?? '').includes(q)),
     );
     // Ordena por precio de venta; los que no tienen precio van al final.
-    const porPrecio = (dir: 1 | -1) => (a: Producto, b: Producto) =>
+    const porPrecio = (dir: 1 | -1) => (a: ProductoCatalogo, b: ProductoCatalogo) =>
       a.precio_venta == null ? 1 : b.precio_venta == null ? -1 : (a.precio_venta - b.precio_venta) * dir;
     switch (this.orden()) {
       case 'precio-asc':
@@ -109,7 +114,7 @@ export class Catalogo implements OnInit {
   private readonly gridWrapper = viewChild<ElementRef<HTMLElement>>('gridWrapper');
 
   // ===== Detalle =====
-  protected readonly detalle = signal<Producto | null>(null);
+  protected readonly detalle = signal<ProductoCatalogo | null>(null);
   protected readonly imagenActiva = signal(0);
   protected readonly detalleImagenes = computed(() => {
     const p = this.detalle();
@@ -183,7 +188,7 @@ export class Catalogo implements OnInit {
     this.error.set('');
     try {
       const [productos, categorias] = await Promise.all([
-        this.productosService.listDisponibles(),
+        this.productosService.listCatalogoPublico(),
         this.productosService.listCategorias(),
       ]);
       this.productos.set(productos);
@@ -198,7 +203,7 @@ export class Catalogo implements OnInit {
 
   // Lo que ganaría un vendedor que no es Admin al venderlo al precio de venta:
   // (precio de venta − precio real) ÷ 2, y qué porcentaje del precio de venta representa.
-  protected comision(p: Producto): { monto: number; porcentaje: number } | null {
+  protected comision(p: ProductoCatalogo): { monto: number; porcentaje: number } | null {
     if (p.precio_venta == null) return null;
     const { vendedor } = repartoGanancia(p.precio_venta, precioReal(p) ?? p.precio_compra, null);
     if (vendedor <= 0) return { monto: 0, porcentaje: 0 };
@@ -209,7 +214,7 @@ export class Catalogo implements OnInit {
   }
 
   // La principal primero y luego el resto en su orden.
-  protected imagenesOrdenadas(p: Producto): ProductoImagen[] {
+  protected imagenesOrdenadas(p: ProductoCatalogo): ProductoImagen[] {
     const imgs = this.imagenesPorProducto().get(p.id) ?? [];
     const principal = imgs.find((i) => i.id === p.imagen_principal_id);
     return principal ? [principal, ...imgs.filter((i) => i !== principal)] : imgs;
@@ -220,7 +225,7 @@ export class Catalogo implements OnInit {
     this.categoriaId.set(null);
   }
 
-  abrirDetalle(p: Producto): void {
+  abrirDetalle(p: ProductoCatalogo): void {
     this.imagenActiva.set(0);
     this.detalle.set(p);
   }

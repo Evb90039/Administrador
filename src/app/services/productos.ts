@@ -43,8 +43,27 @@ export interface Producto {
 
 export type ProductoInput = Omit<Producto, 'id' | 'imagen_principal_id'>;
 
+// Subconjunto de columnas que expone la vista pública `catalogo_productos`
+// (sin tarjeta, proveedor, reembolso_via, resenado ni fecha_compra).
+export type ProductoCatalogo = Pick<
+  Producto,
+  | 'id'
+  | 'nombre'
+  | 'enlace'
+  | 'tienda'
+  | 'categoria_id'
+  | 'precio_compra'
+  | 'dinero_reembolsado'
+  | 'precio_venta'
+  | 'imagen_principal_id'
+  | 'disponibilidad'
+>;
+
 const COLUMNS =
   'id, fecha_compra, nombre, enlace, tienda, categoria_id, tarjeta, precio_compra, dinero_reembolsado, reembolso_via, resenado, disponibilidad, imagen_principal_id, proveedor_id, precio_venta';
+
+const COLUMNS_CATALOGO =
+  'id, nombre, enlace, tienda, categoria_id, precio_compra, dinero_reembolsado, precio_venta, imagen_principal_id, disponibilidad';
 
 const MESSAGES: Record<string, string> = {
   '23503': 'La categoría o el proveedor seleccionado ya no existe',
@@ -90,6 +109,16 @@ export class ProductosService {
       .select(COLUMNS)
       .eq('disponibilidad', 'Disponible')
       .order('fecha_compra', { ascending: false })
+      .order('id', { ascending: false });
+    if (error) throw toDbError(error, MESSAGES);
+    return data;
+  }
+
+  // Vista pública del catálogo (accesible sin login; solo columnas seguras).
+  async listCatalogoPublico(): Promise<ProductoCatalogo[]> {
+    const { data, error } = await this.db()
+      .from('catalogo_productos')
+      .select(COLUMNS_CATALOGO)
       .order('id', { ascending: false });
     if (error) throw toDbError(error, MESSAGES);
     return data;
