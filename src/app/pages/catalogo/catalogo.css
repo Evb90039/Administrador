@@ -348,7 +348,6 @@
 
 /* ===== Paginador integrado al fondo ===== */
 .paginator-wrap { flex-shrink: 0; }
-.paginator-wrap app-paginator { display: block; }
 
 /* ===== Detalle (modal) ===== */
 .galeria { display: flex; flex-direction: column; background: #fff; border-right: 1px solid var(--app-border); }
