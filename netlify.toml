@@ -4,3 +4,55 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+# SPA: todas las rutas sirven index.html (Angular Router se encarga del resto).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# ===== Headers de seguridad =====
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Fuerza HTTPS por 2 años en todo el dominio y subdominios.
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
+
+    # Anti-clickjacking: nadie puede embeber tu app en un <iframe>.
+    X-Frame-Options = "DENY"
+
+    # El navegador respeta el Content-Type que mandas, no intenta "adivinarlo".
+    X-Content-Type-Options = "nosniff"
+
+    # Al navegar a otros sitios, solo mandamos el origen (no la ruta completa).
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+    # Bloquea APIs sensibles (cámara, micrófono, geolocalización, etc.).
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+
+    # Reduce fingerprinting del user-agent en Chrome.
+    Cross-Origin-Opener-Policy = "same-origin"
+
+    # Content Security Policy: limita de dónde puede cargar scripts, imágenes,
+    # conexiones, etc. Permitimos lo que la app realmente usa:
+    #   - Supabase (REST + Realtime WebSocket)
+    #   - Google Fonts
+    #   - data: y blob: para previews de imágenes
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none';"
+
+# Cache agresivo en los assets fingerprinted del build (Angular les pone hash).
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# index.html NO se cachea para que los deploys nuevos se vean enseguida.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
