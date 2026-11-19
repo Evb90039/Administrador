@@ -76,6 +76,7 @@ const CATEGORIA_ICONOS: { readonly match: string; readonly icon: string }[] = [
   { match: 'bebida', icon: 'bi-cup-straw' },
   { match: 'videojuego', icon: 'bi-controller' },
   { match: 'gaming', icon: 'bi-controller' },
+  { match: 'seguridad', icon: 'bi-camera-video-fill' },
   { match: 'camara', icon: 'bi-camera-fill' },
   { match: 'foto', icon: 'bi-camera-fill' },
   { match: 'iluminac', icon: 'bi-lightbulb-fill' },
