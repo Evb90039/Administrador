@@ -34,7 +34,7 @@
               "node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"
             ],
             "security": {
-              "allowedHosts": []
+              "allowedHosts": [".trycloudflare.com"]
             }
           },
           "configurations": {
@@ -47,8 +47,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "6kB",
-                  "maximumError": "12kB"
+                  "maximumWarning": "10kB",
+                  "maximumError": "16kB"
                 }
               ],
               "outputHashing": "all",
@@ -71,6 +71,9 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "allowedHosts": [".trycloudflare.com"]
+          },
           "configurations": {
             "production": {
               "buildTarget": "administrador:build:production"

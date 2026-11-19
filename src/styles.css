@@ -272,10 +272,11 @@ body {
 .segmented button.active { background: var(--app-surface); color: var(--app-text); box-shadow: var(--app-shadow); }
 
 /* Etiquetas de estado (usan --c y --bg) */
-.estado-disponible { --c: #059669; --bg: rgba(16, 185, 129, 0.12); }
-.estado-apartado   { --c: #b45309; --bg: rgba(245, 158, 11, 0.14); }
-.estado-regalado   { --c: #7c3aed; --bg: rgba(139, 92, 246, 0.12); }
-.estado-vendido    { --c: #2563eb; --bg: rgba(37, 99, 235, 0.12); }
+.estado-disponible    { --c: #059669; --bg: rgba(16, 185, 129, 0.12); }
+.estado-apartado      { --c: #b45309; --bg: rgba(245, 158, 11, 0.14); }
+.estado-regalado      { --c: #7c3aed; --bg: rgba(139, 92, 246, 0.12); }
+.estado-vendido       { --c: #2563eb; --bg: rgba(37, 99, 235, 0.12); }
+.estado-no-disponible { --c: #64748b; --bg: rgba(100, 116, 139, 0.12); }
 .estado-badge {
   display: inline-flex;
   align-items: center;

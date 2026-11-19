@@ -7,6 +7,6 @@ alter table public.productos
 
 alter table public.productos drop constraint if exists productos_disponibilidad_valida;
 alter table public.productos add constraint productos_disponibilidad_valida
-  check (disponibilidad in ('Disponible', 'Apartado', 'Regalado', 'Vendido'));
+  check (disponibilidad in ('Disponible', 'Apartado', 'Regalado', 'Vendido', 'No Disponible'));
 
 notify pgrst, 'reload schema';
