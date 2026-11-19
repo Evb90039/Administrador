@@ -15,7 +15,7 @@ export const TARJETAS = [
   { nombre: 'Mercadolibre', terminacion: '5584' },
   { nombre: 'HomeDepot', terminacion: '344' },
 ].map((t) => ({ ...t, value: `${t.nombre} ${t.terminacion}` }));
-export const DISPONIBILIDADES = ['Disponible', 'Apartado', 'Regalado', 'Vendido'] as const;
+export const DISPONIBILIDADES = ['Disponible', 'Apartado', 'Regalado', 'Vendido', 'No Disponible'] as const;
 export type Disponibilidad = (typeof DISPONIBILIDADES)[number];
 
 export interface Categoria {

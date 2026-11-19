@@ -2,6 +2,9 @@
 :host {
   display: block;
   height: 100vh;
+  /* dvh respeta el chrome dinámico de iOS/Android (URL bar que colapsa),
+     evitando que las últimas cards queden ocultas detrás de la barra. */
+  height: 100dvh;
   background: var(--app-bg);
   overflow: hidden;
 }
@@ -111,6 +114,168 @@
   transition: background-color 0.2s var(--app-ease), color 0.2s var(--app-ease);
 }
 .reload-btn:hover:not(:disabled) { background: var(--app-primary-soft); color: var(--app-primary); }
+
+/* ===== Trigger móvil: botón que abre el bottom sheet de categorías ===== */
+.cat-trigger {
+  display: none; /* Solo visible en móvil (override en media query) */
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  margin-top: 0.7rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-bg);
+  color: var(--app-text);
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-align: left;
+  transition: background-color 0.2s var(--app-ease), border-color 0.2s var(--app-ease);
+}
+.cat-trigger:hover, .cat-trigger:focus-visible {
+  background: var(--app-surface);
+  border-color: var(--app-primary);
+  outline: none;
+}
+.cat-trigger-icon { color: var(--app-primary); font-size: 1rem; }
+.cat-trigger-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat-trigger-count {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--app-primary-soft);
+  color: var(--app-primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.cat-trigger-arrow { color: var(--app-muted); font-size: 0.8rem; }
+
+/* ===== Bottom sheet móvil ===== */
+.cat-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.2s var(--app-ease);
+}
+.cat-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1055;
+  display: flex;
+  flex-direction: column;
+  max-height: 75dvh;
+  background: var(--app-surface);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.18);
+  animation: slideUp 0.25s var(--app-ease);
+}
+.cat-sheet-header {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 1rem 0.75rem;
+  border-bottom: 1px solid var(--app-border);
+}
+.cat-sheet-handle {
+  width: 42px;
+  height: 4px;
+  margin-bottom: 0.6rem;
+  border-radius: 999px;
+  background: var(--app-border);
+}
+.cat-sheet-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+/* Mismo estilo que el botón X del modal de detalle: azul primario con X
+   blanca, para mantener identidad visual consistente en toda la página. */
+.cat-sheet-close {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--app-primary);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+  transition: background-color 0.2s var(--app-ease), transform 0.15s var(--app-ease),
+    box-shadow 0.2s var(--app-ease);
+}
+.cat-sheet-close:hover {
+  background: #1d4ed8;
+  transform: scale(1.08);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5);
+}
+.cat-sheet-close:focus-visible { outline: 2px solid var(--app-primary); outline-offset: 3px; }
+.cat-sheet-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+.cat-sheet-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--app-text);
+  font-size: 0.92rem;
+  text-align: left;
+  transition: background-color 0.15s var(--app-ease), border-color 0.15s var(--app-ease);
+}
+.cat-sheet-item + .cat-sheet-item { margin-top: 0.25rem; }
+.cat-sheet-item i {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--app-bg);
+  color: var(--app-primary);
+  font-size: 0.85rem;
+}
+.cat-sheet-item-name { flex: 1; font-weight: 500; }
+.cat-sheet-item-count {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--app-bg);
+  color: var(--app-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.cat-sheet-item:hover { background: var(--app-bg); }
+.cat-sheet-item.active {
+  background: var(--app-primary-soft);
+  border-color: var(--app-primary);
+  color: var(--app-primary);
+}
+.cat-sheet-item.active i { background: var(--app-primary); color: #fff; }
+.cat-sheet-item.active .cat-sheet-item-count {
+  background: var(--app-primary);
+  color: #fff;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
 /* Chips de categorías refinados — scroll horizontal con fade indicador */
 .cat-chips-wrap {
@@ -350,6 +515,34 @@
 .paginator-wrap { flex-shrink: 0; }
 
 /* ===== Detalle (modal) ===== */
+/* Botón cerrar flotante en la esquina del modal (encima de la galería). */
+.modal-close-float {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--app-primary);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+  transition: background-color 0.2s var(--app-ease), transform 0.15s var(--app-ease),
+    box-shadow 0.2s var(--app-ease);
+}
+.modal-close-float:hover {
+  background: #1d4ed8;
+  transform: scale(1.08);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5);
+}
+.modal-close-float:focus-visible { outline: 2px solid var(--app-primary); outline-offset: 3px; }
+
 .galeria { display: flex; flex-direction: column; background: #fff; border-right: 1px solid var(--app-border); }
 .galeria-main { position: relative; aspect-ratio: 1; display: grid; place-items: center; padding: 1.5rem; }
 .galeria-main img { width: 100%; height: 100%; object-fit: contain; animation: modalIn 0.25s var(--app-ease); }
@@ -434,29 +627,79 @@
   .catalogo-content { padding: 0.85rem 0.85rem 0; }
   .busqueda { flex: 1 1 100%; }
 
-  /* Siempre 2 columnas y cards compactos para que entren mínimo 4 sin scroll. */
-  .grid { grid-template-columns: repeat(2, 1fr); gap: 0.65rem; }
+  /* En móvil: botón trigger en vez de chips horizontales. */
+  .cat-trigger { display: inline-flex; }
+  .cat-chips-wrap { display: none; }
+
+  /* Siempre 2 columnas y cards muy compactos. El pageSize se auto-adapta:
+     caben 4 (2×2) en pantallas normales; 2 (2×1) + paginador si son chicas. */
+  .grid { grid-template-columns: repeat(2, 1fr); gap: 0.55rem; }
   .item { border-radius: 12px; }
-  .item-img { padding: 0.6rem; }
-  .item-body { padding: 0.55rem 0.7rem 0.65rem; }
-  .item-cat { font-size: 0.58rem; letter-spacing: 0.06em; }
+  /* Imagen 16:10 (más baja que 4:3) para dar prioridad al contenido/footer. */
+  .item-img { aspect-ratio: 16 / 10; padding: 0.5rem; }
+  .item-body { padding: 0.5rem 0.65rem 0.55rem; }
+  .item-cat { font-size: 0.56rem; letter-spacing: 0.06em; }
   .item-nombre {
-    margin: 0.2rem 0 0.4rem;
+    margin: 0.2rem 0 0.35rem;
     min-height: 0;
-    font-size: 0.78rem;
-    line-height: 1.25;
+    font-size: 0.76rem;
+    line-height: 1.2;
     -webkit-line-clamp: 2;
   }
-  .precio { font-size: 1rem; }
-  .precio-tachado { font-size: 0.68rem; }
-  .item-footer { padding: 0.4rem 0.7rem; font-size: 0.7rem; }
+  .precio { font-size: 0.95rem; }
+  .precio-tachado { font-size: 0.65rem; }
+  .item-footer { padding: 0.35rem 0.65rem; font-size: 0.68rem; }
   .item-footer i { margin-right: 0.25rem; }
   .tienda-pill { top: 6px; left: 6px; padding: 0.15rem 0.45rem; font-size: 0.6rem; }
   .pct-ribbon { top: 6px; right: 6px; padding: 0.15rem 0.45rem; font-size: 0.62rem; }
   .item-count { right: 6px; bottom: 6px; font-size: 0.6rem; padding: 0.1rem 0.4rem; }
 
-  .galeria { border-right: none; border-bottom: 1px solid var(--app-border); }
-  .galeria-main { aspect-ratio: 4 / 3; }
+  .galeria { border-right: none; border-bottom: 1px solid var(--app-border); flex-shrink: 0; }
+  /* Contenedor con altura razonable (36dvh) y flex para centrar la imagen.
+     dvh respeta el chrome dinámico de iOS (URL bar que colapsa). */
+  .galeria-main {
+    aspect-ratio: auto;
+    height: 36dvh;
+    min-height: 220px;
+    max-height: 300px;
+    padding: 0.5rem;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* max-width/max-height: 100% + width/height: auto = la imagen se escala
+     para caber dentro del contenedor manteniendo su aspect ratio natural,
+     sin deformarse ni recortarse. */
+  .galeria-main img {
+    width: auto !important;
+    height: auto !important;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .galeria-thumbs { padding: 0 0.6rem 0.4rem; gap: 0.3rem; }
+  .galeria-thumb { width: 38px; height: 38px; }
+
+  .modal-dialog { margin: 0.5rem; max-height: calc(100dvh - 1rem); }
+  .modal-content { max-height: calc(100dvh - 1rem); }
+  .detalle-info { padding: 0.75rem 0.9rem; gap: 0.6rem; }
+  .detalle-nombre {
+    font-size: 1rem;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .detalle-label { font-size: 0.65rem; }
+  .detalle-precio .valor { font-size: 1.4rem; }
+  .detalle-precio .precio-tachado { font-size: 0.78rem; }
+  .comision-card { padding: 0.55rem 0.7rem; gap: 0.6rem; }
+  .cc-icon { width: 32px; height: 32px; font-size: 0.9rem; border-radius: 8px; }
+  .cc-monto { font-size: 1rem; }
+  .cc-pct strong { font-size: 1rem; }
+  .comision-card .detalle-label { display: block; margin-bottom: 0.1rem; }
 }
 
 @media (max-width: 480px) {

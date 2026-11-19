@@ -16,33 +16,24 @@
         />
       </div>
 
-      <div class="orden-wrap">
-        <i class="bi bi-sort-down"></i>
-        <select
-          class="orden"
-          aria-label="Ordenar"
-          [value]="orden()"
-          (change)="orden.set($any($event.target).value)"
-        >
-          <option value="recientes">Más recientes</option>
-          <option value="precio-asc">Precio: menor a mayor</option>
-          <option value="precio-desc">Precio: mayor a menor</option>
-          <option value="nombre">Nombre (A–Z)</option>
-        </select>
-      </div>
-
-      <button
-        class="reload-btn"
-        type="button"
-        title="Recargar"
-        (click)="load()"
-        [disabled]="loading()"
-      >
-        <i class="bi bi-arrow-clockwise"></i>
-      </button>
     </div>
 
     @if (categoriasConProductos().length > 1) {
+      <!-- Mobile: botón que abre el bottom sheet con todas las categorías -->
+      <button type="button" class="cat-trigger" (click)="abrirMenuCategorias()">
+        <i
+          class="bi cat-trigger-icon"
+          [class]="
+            'bi cat-trigger-icon ' +
+            (categoriaId() === null ? 'bi-grid-fill' : iconoCategoria(categoriaActivaNombre()))
+          "
+        ></i>
+        <span class="cat-trigger-label">{{ categoriaActivaNombre() }}</span>
+        <span class="cat-trigger-count">{{ conteoVisible() }}</span>
+        <i class="bi bi-chevron-down cat-trigger-arrow"></i>
+      </button>
+
+      <!-- Desktop: chips horizontales (como antes) -->
       <div class="cat-chips-wrap">
         <div class="cat-chips">
           <button type="button" class="cat-chip" [class.active]="categoriaId() === null" (click)="categoriaId.set(null)">
@@ -57,6 +48,46 @@
       </div>
     }
   </header>
+
+  <!-- BOTTOM SHEET DE CATEGORÍAS (móvil) -->
+  @if (menuCategoriasAbierto()) {
+    <div class="cat-sheet-backdrop" (click)="cerrarMenuCategorias()"></div>
+    <aside class="cat-sheet" role="dialog" aria-label="Seleccionar categoría">
+      <div class="cat-sheet-header">
+        <span class="cat-sheet-handle"></span>
+        <div class="d-flex justify-content-between align-items-center w-100">
+          <h5 class="cat-sheet-title">Categorías</h5>
+          <button type="button" class="cat-sheet-close" aria-label="Cerrar" (click)="cerrarMenuCategorias()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+      <div class="cat-sheet-list">
+        <button
+          type="button"
+          class="cat-sheet-item"
+          [class.active]="categoriaId() === null"
+          (click)="seleccionarCategoria(null)"
+        >
+          <i class="bi bi-grid-fill"></i>
+          <span class="cat-sheet-item-name">Todas las categorías</span>
+          <span class="cat-sheet-item-count">{{ productos().length }}</span>
+        </button>
+        @for (c of categoriasConProductos(); track c.id) {
+          <button
+            type="button"
+            class="cat-sheet-item"
+            [class.active]="categoriaId() === c.id"
+            (click)="seleccionarCategoria(c.id)"
+          >
+            <i class="bi" [class]="'bi ' + iconoCategoria(c.nombre)"></i>
+            <span class="cat-sheet-item-name">{{ c.nombre }}</span>
+            <span class="cat-sheet-item-count">{{ c.total }}</span>
+          </button>
+        }
+      </div>
+    </aside>
+  }
 
   <!-- CONTENIDO -->
   <main class="catalogo-content">
@@ -170,6 +201,9 @@
     <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" (click)="cerrarDetalle()">
       <div class="modal-dialog modal-dialog-centered modal-lg" (click)="$event.stopPropagation()">
         <div class="modal-content overflow-hidden">
+          <button type="button" class="modal-close-float" aria-label="Cerrar" (click)="cerrarDetalle()">
+            <i class="bi bi-x-lg"></i>
+          </button>
           <div class="row g-0">
             <!-- Galería -->
             <div class="col-md-6 galeria">
@@ -208,14 +242,11 @@
 
             <!-- Información -->
             <div class="col-md-6 detalle-info">
-              <div class="d-flex justify-content-between align-items-center gap-2">
-                <div class="d-flex flex-wrap gap-2">
-                  <span class="cat-pill">{{ categoriaNombre().get(p.categoria_id) ?? '—' }}</span>
-                  <span class="tienda-pill static" [class.tienda-amazon]="p.tienda === 'Amazon'" [class.tienda-ml]="p.tienda === 'Mercado Libre'">
-                    {{ p.tienda }}
-                  </span>
-                </div>
-                <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrarDetalle()"></button>
+              <div class="d-flex flex-wrap gap-2">
+                <span class="cat-pill">{{ categoriaNombre().get(p.categoria_id) ?? '—' }}</span>
+                <span class="tienda-pill static" [class.tienda-amazon]="p.tienda === 'Amazon'" [class.tienda-ml]="p.tienda === 'Mercado Libre'">
+                  {{ p.tienda }}
+                </span>
               </div>
 
               <h4 class="detalle-nombre">{{ p.nombre }}</h4>

@@ -74,6 +74,7 @@ const DISPONIBILIDAD_STYLES: Record<Disponibilidad, { icon: string; css: string 
   Apartado: { icon: 'bi-bookmark', css: 'estado-apartado' },
   Regalado: { icon: 'bi-gift', css: 'estado-regalado' },
   Vendido: { icon: 'bi-cash-coin', css: 'estado-vendido' },
+  'No Disponible': { icon: 'bi-slash-circle', css: 'estado-no-disponible' },
 };
 
 // Compara sin acentos ni mayúsculas.

@@ -181,9 +181,10 @@ tr:hover .product-link { opacity: 1; }
 .resena-icon { color: #f59e0b; font-size: 1.3rem; }
 .resena-card .form-check-input { width: 2.5em; height: 1.3em; cursor: pointer; }
 
-.estado-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; }
+.estado-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; }
 .estado-grid.locked { pointer-events: none; opacity: 0.6; }
-@media (max-width: 575.98px) { .estado-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 767.98px) { .estado-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 420px) { .estado-grid { grid-template-columns: repeat(2, 1fr); } }
 .estado-option {
   display: flex;
   flex-direction: column;

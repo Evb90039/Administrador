@@ -28,8 +28,65 @@ type Orden = 'recientes' | 'precio-asc' | 'precio-desc' | 'nombre';
 const normalize = (s: string): string =>
   s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
-// Mínimo de productos a mostrar por página para evitar páginas casi vacías.
-const MIN_PAGE_SIZE = 4;
+// Mínimo de productos a mostrar por página. Mantenemos 2 (1 fila de 2 cols en
+// móvil) para que el paginador nunca se auto-adapte a 0 en viewports chicos,
+// pero sin forzar 4 cuando solo caben 2 → evita cortar la última fila.
+const MIN_PAGE_SIZE = 2;
+
+// Mapeo de palabras clave en el nombre de la categoría al icono de Bootstrap
+// Icons más representativo. Se recorre en orden: la primera coincidencia gana.
+// Permite que nuevas categorías "obvias" hereden el icono automáticamente.
+const CATEGORIA_ICONOS: { readonly match: string; readonly icon: string }[] = [
+  { match: 'automo', icon: 'bi-car-front-fill' },
+  { match: 'motocicleta', icon: 'bi-bicycle' },
+  { match: 'moto', icon: 'bi-bicycle' },
+  { match: 'belleza', icon: 'bi-palette-fill' },
+  { match: 'cuidado personal', icon: 'bi-droplet-half' },
+  { match: 'salud', icon: 'bi-heart-pulse-fill' },
+  { match: 'computac', icon: 'bi-pc-display' },
+  { match: 'electronic', icon: 'bi-tv-fill' },
+  { match: 'celular', icon: 'bi-phone-fill' },
+  { match: 'telefon', icon: 'bi-phone-fill' },
+  { match: 'audio', icon: 'bi-music-note-beamed' },
+  { match: 'instrument', icon: 'bi-music-note' },
+  { match: 'herramienta', icon: 'bi-tools' },
+  { match: 'construcc', icon: 'bi-bricks' },
+  { match: 'hogar', icon: 'bi-house-door-fill' },
+  { match: 'cocina', icon: 'bi-cup-hot-fill' },
+  { match: 'jardin', icon: 'bi-flower1' },
+  { match: 'limpieza', icon: 'bi-droplet-fill' },
+  { match: 'joy', icon: 'bi-gem' },
+  { match: 'reloj', icon: 'bi-watch' },
+  { match: 'juguete', icon: 'bi-puzzle-fill' },
+  { match: 'niño', icon: 'bi-balloon-heart-fill' },
+  { match: 'bebe', icon: 'bi-balloon-heart-fill' },
+  { match: 'deport', icon: 'bi-trophy-fill' },
+  { match: 'fitness', icon: 'bi-bicycle' },
+  { match: 'ropa', icon: 'bi-handbag-fill' },
+  { match: 'calzado', icon: 'bi-bag-fill' },
+  { match: 'zapato', icon: 'bi-bag-fill' },
+  { match: 'moda', icon: 'bi-handbag-fill' },
+  { match: 'accesorio', icon: 'bi-bag-heart-fill' },
+  { match: 'libro', icon: 'bi-book-fill' },
+  { match: 'papeler', icon: 'bi-journal-text' },
+  { match: 'oficina', icon: 'bi-briefcase-fill' },
+  { match: 'mascota', icon: 'bi-github' },
+  { match: 'alimento', icon: 'bi-basket-fill' },
+  { match: 'comida', icon: 'bi-basket-fill' },
+  { match: 'bebida', icon: 'bi-cup-straw' },
+  { match: 'videojuego', icon: 'bi-controller' },
+  { match: 'gaming', icon: 'bi-controller' },
+  { match: 'camara', icon: 'bi-camera-fill' },
+  { match: 'foto', icon: 'bi-camera-fill' },
+  { match: 'iluminac', icon: 'bi-lightbulb-fill' },
+  { match: 'luz', icon: 'bi-lightbulb-fill' },
+  { match: 'led', icon: 'bi-lightbulb-fill' },
+];
+
+export function iconoDeCategoria(nombre: string): string {
+  const n = nombre.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  return CATEGORIA_ICONOS.find((c) => n.includes(c.match))?.icon ?? 'bi-tag-fill';
+}
 
 @Component({
   imports: [CurrencyPipe, Loader, Paginator],
@@ -55,6 +112,38 @@ export class Catalogo implements OnInit {
   protected readonly busqueda = signal('');
   protected readonly categoriaId = signal<number | null>(null);
   protected readonly orden = signal<Orden>('recientes');
+
+  // Controla el bottom sheet de categorías en móvil (patrón e-commerce).
+  protected readonly menuCategoriasAbierto = signal(false);
+
+  protected readonly categoriaActivaNombre = computed(() => {
+    const id = this.categoriaId();
+    if (id === null) return 'Todas las categorías';
+    return this.categoriaNombre().get(id) ?? 'Categoría';
+  });
+
+  protected readonly conteoVisible = computed(() => {
+    const id = this.categoriaId();
+    if (id === null) return this.productos().length;
+    return this.categoriasConProductos().find((c) => c.id === id)?.total ?? 0;
+  });
+
+  protected abrirMenuCategorias(): void {
+    this.menuCategoriasAbierto.set(true);
+  }
+
+  protected cerrarMenuCategorias(): void {
+    this.menuCategoriasAbierto.set(false);
+  }
+
+  protected seleccionarCategoria(id: number | null): void {
+    this.categoriaId.set(id);
+    this.cerrarMenuCategorias();
+  }
+
+  protected iconoCategoria(nombre: string): string {
+    return iconoDeCategoria(nombre);
+  }
 
   protected readonly categoriaNombre = computed(
     () => new Map(this.categorias().map((c) => [c.id, c.nombre])),
@@ -136,45 +225,44 @@ export class Catalogo implements OnInit {
     }
   }
 
+  private recalcPageSize = (): void => {
+    const wrapper = this.gridWrapper()?.nativeElement;
+    if (!wrapper) return;
+
+    const grid = wrapper.querySelector('.grid') as HTMLElement | null;
+    if (!grid) return;
+
+    // clientHeight del wrapper = espacio REAL disponible para el grid
+    // (el flex layout ya descontó topbar y paginador).
+    const available = wrapper.clientHeight;
+    if (available < 1) return;
+
+    const style = window.getComputedStyle(grid);
+    const gap = parseFloat(style.rowGap || style.gap || '12') || 12;
+    const cols = Math.max(
+      1,
+      (style.gridTemplateColumns || '').split(' ').filter(Boolean).length,
+    );
+
+    // Mide un card REAL (button.item), no los skeletons (div.item) que son
+    // más bajos. Si solo hay skeletons, esperamos a la siguiente pasada.
+    const sampleCard = grid.querySelector('button.item') as HTMLElement | null;
+    if (!sampleCard) return;
+    const cardHeight = sampleCard.getBoundingClientRect().height;
+    if (cardHeight < 1) return;
+
+    // Buffer de 8px para evitar que el redondeo meta una fila que se corta.
+    const rows = Math.max(1, Math.floor((available - 8 + gap) / (cardHeight + gap)));
+    const size = Math.max(MIN_PAGE_SIZE, cols * rows);
+    if (size !== this.pageSize()) this.pageSize.set(size);
+  };
+
   private setupAutoPageSize(): void {
-    const update = () => {
-      const wrapper = this.gridWrapper()?.nativeElement;
-      if (!wrapper) return;
+    // Pasada inicial + una tras el primer render de cards reales.
+    this.recalcPageSize();
+    requestAnimationFrame(this.recalcPageSize);
 
-      const grid = wrapper.querySelector('.grid') as HTMLElement | null;
-      const rect = (grid ?? wrapper).getBoundingClientRect();
-      if (rect.width < 1) return;
-
-      const style = window.getComputedStyle(grid ?? wrapper);
-      const gap = parseFloat(style.rowGap || style.gap || '20') || 20;
-
-      // Lee las columnas reales que calculó el browser (respeta media queries,
-      // auto-fill, etc.) en vez de hardcodear anchos mínimos.
-      const cols = Math.max(
-        1,
-        (style.gridTemplateColumns || '').split(' ').filter(Boolean).length,
-      );
-
-      // Mide la altura real de un card renderizado; si no hay cards todavía,
-      // estima: ancho de columna (imagen cuadrada) + cuerpo + footer.
-      const sampleCard = grid?.querySelector('.item') as HTMLElement | null;
-      const colWidth = (rect.width - (cols - 1) * gap) / cols;
-      const cardHeight = sampleCard?.getBoundingClientRect().height || colWidth + 140;
-
-      // Alto disponible = del top del grid hasta el fondo del viewport,
-      // reservando ~56 px para el paginador y un margen.
-      const available = window.innerHeight - rect.top - 56 - 12;
-      const rows = Math.max(1, Math.floor((available + gap) / (cardHeight + gap)));
-
-      const size = Math.max(MIN_PAGE_SIZE, cols * rows);
-      if (size !== this.pageSize()) this.pageSize.set(size);
-    };
-
-    // Dos pasadas: la primera estima; la segunda, tras renderizar, usa la altura real.
-    update();
-    requestAnimationFrame(update);
-
-    const ro = new ResizeObserver(() => update());
+    const ro = new ResizeObserver(() => this.recalcPageSize());
     ro.observe(document.body);
     this.destroyRef.onDestroy(() => ro.disconnect());
   }
@@ -198,6 +286,11 @@ export class Catalogo implements OnInit {
       this.error.set((e as Error).message);
     } finally {
       this.loading.set(false);
+      // Recalcula el pageSize con las cards reales (no los skeletons) ya en DOM.
+      if (this.isBrowser) {
+        requestAnimationFrame(() => this.recalcPageSize());
+        setTimeout(() => this.recalcPageSize(), 300);
+      }
     }
   }
 
